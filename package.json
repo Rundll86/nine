@@ -20,8 +20,8 @@
         "reactive"
     ],
     "scripts": {
-        "dev": "tsc --watch",
-        "build": "tsc",
+        "dev": "tsup --watch",
+        "build": "tsup",
         "lint": "eslint .",
         "lint:fix": "eslint . --fix",
         "check-type": "tsc --noEmit"
