@@ -102,7 +102,7 @@ export function when(condition: Wrapper<boolean> | (() => boolean), tree: TreeRe
             result = condition.get();
         }
         return [result ? tree : null];
-    }, dependencies);
+    }, [...dependencies, ...(isWrapper(condition) ? [condition] : [])]);
 }
 export function isWrapper<T>(data: unknown): data is Wrapper<T> {
     return Object.hasOwn(data, wrapperSymbol) && data[wrapperSymbol] === true;
