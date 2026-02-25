@@ -1,6 +1,6 @@
 import { Empty, Normalize } from "@/util/types";
 import { TreeContext, tree } from "./tree";
-import { normalizePropertyDescriptor } from "./property";
+import { composeDict, normalizePropertyDescriptor, validateStore } from "./property";
 
 export type RenderResult = {
     mount(to: string | HTMLElement): void;
@@ -51,9 +51,10 @@ export function createComponent<
     P extends ComponentPropertyStore
 >(
     options: ComponentOption<P>,
-    renderer: (options: ComponentPropertyDict<P>, slot: () => TreeResult) => TreeResult
+    internalRenderer: (options: ComponentPropertyDict<P>, slot: () => TreeResult) => TreeResult
 ): Component<Normalize<P>> {
-    const normalizedProps = Object.fromEntries(
+    validateStore(options.props);
+    const propStore = Object.fromEntries(
         Object
             .entries(options.props)
             .map(([key, value]) => [
@@ -61,8 +62,8 @@ export function createComponent<
                 normalizePropertyDescriptor(value),
             ])
     ) as Normalize<P>;
-    return Object.assign((props: ComponentPropertyDict<Normalize<P>>, slot?: Empty | (() => TreeResult)) => {
-        const nodeTree = renderer(props as ComponentPropertyDict<P>, () => slot?.());
+    const entryRenderer = (props: ComponentPropertyDict<P>, slot?: Empty | (() => TreeResult)) => {
+        const nodeTree = internalRenderer(composeDict(props, propStore), () => slot?.());
         const result = normalizeTree(nodeTree);
         return {
             mount(to: string | HTMLElement) {
@@ -74,7 +75,8 @@ export function createComponent<
             $: result,
             [renderResultSymbol]: true as true
         };
-    }, {
-        props: normalizedProps
-    } satisfies NormalizedComponentOption<P>);
+    };
+    return Object.assign(entryRenderer, {
+        props: propStore
+    } satisfies NormalizedComponentOption<P>) as unknown as Component<Normalize<P>>;
 }

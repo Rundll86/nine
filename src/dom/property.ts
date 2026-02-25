@@ -1,4 +1,6 @@
-import { ComponentPropertyDescriptor } from "./component";
+import { Normalize, Valueof } from "@/util";
+import { ComponentPropertyDescriptor, ComponentPropertyDict, ComponentPropertyStore } from "./component";
+import { ConflictionError, MissingFieldError, ValidationFailed } from "@/exceptions";
 
 export function normalizePropertyDescriptor
     <I, O, R extends boolean>(
@@ -10,4 +12,36 @@ export function normalizePropertyDescriptor
         shadow: null,
         required: false
     } satisfies Required<ComponentPropertyDescriptor>, descriptor);
+}
+export function validateStore(store: ComponentPropertyStore) {
+    for (const propertyKey in store) {
+        const descriptor = store[propertyKey];
+        if (descriptor.shadow) {
+            if (descriptor.required) {
+                throw new ConflictionError(`The required property ${propertyKey} can't have a shadow.`);
+            }
+            if (descriptor.validate && !descriptor.validate(descriptor.shadow)) {
+                throw new ValidationFailed(`The shadow of ${propertyKey} can't pass the validation.`);
+            }
+        }
+    }
+}
+export function composeDict<T extends ComponentPropertyStore>(input: ComponentPropertyDict<T>, store: Normalize<T>) {
+    const result: Record<string, unknown> = {};
+    for (const propertyKey in store) {
+        const descriptor = store[propertyKey];
+        if (!Object.hasOwn(input, propertyKey)) {
+            if (descriptor.required) {
+                throw new MissingFieldError(`Missing a required property ${propertyKey}.`);
+            }
+            result[propertyKey] = descriptor.shadow;
+            continue;
+        }
+        const value = input[propertyKey];
+        if (!descriptor.validate(value)) {
+            throw new ValidationFailed(`The input value of ${propertyKey} can't pass the validation.`);
+        }
+        result[propertyKey] = descriptor.transform(value);
+    }
+    return result as ComponentPropertyDict<T>;
 }
