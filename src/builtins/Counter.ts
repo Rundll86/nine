@@ -1,4 +1,4 @@
-import { $, createComponent, tree, sync, styleSet, createArray, when, wrap } from "@";
+import { $, createComponent, tree, sync, styleSet, createArray, when, wrap, TreeResult } from "@";
 
 export default createComponent({ //创建组件
     props: {
@@ -25,7 +25,7 @@ export default createComponent({ //创建组件
             tree("br"),
             "当前值：", $(count), //引用响应式的值，类似模板语法{{ count }}
             "双倍值：", $(doubled),
-            sync(() => createArray(doubled.get(), () => tree("div").textContent("你点了一下")), [doubled]), //列表渲染v-for
+            sync<TreeResult[]>(() => createArray(doubled.get(), () => tree("div").textContent("你点了一下")), [doubled]), //列表渲染v-for
             when(() => count.get() > 10, () => tree("p").textContent("count > 10 时显示"), [count]), //条件渲染v-if
         );
 });

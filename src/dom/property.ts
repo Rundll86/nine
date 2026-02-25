@@ -4,8 +4,8 @@ import { isWrapper } from "./reactive";
 
 export function normalizePropertyDescriptor
     <I, O, R extends boolean>(
-        descriptor: ComponentPropertyDescriptor<I, O, R>
-    ): Required<ComponentPropertyDescriptor<I, O, R>> {
+    descriptor: ComponentPropertyDescriptor<I, O, R>
+): Required<ComponentPropertyDescriptor<I, O, R>> {
     return Object.assign({
         validate: () => true,
         transform: x => x,
