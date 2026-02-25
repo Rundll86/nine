@@ -1,13 +1,20 @@
 import { camelToHyphen } from "@/util/char";
-import { normalizeTree, TreeResult } from "./component";
+import { render, TreeResult } from "./component";
 import { isWrapper, Wrapper } from "./reactive";
 import { StyleSet } from "./style";
+import { putIn } from "@/util/array";
 
 export type TreeContext<T extends HTMLElement = HTMLElement> = {
     [K in keyof T as T[K] extends (...args: unknown[]) => unknown ? never : K]: (data: T[K] | Wrapper<T[K]>) => TreeContext<T>;
 } & {
     element: T;
-    append(...children: (TreeResult | Wrapper<TreeResult[]>)[]): TreeContext<T>;
+    append(...children: (
+        TreeResult |
+        TreeResult[] |
+        Wrapper<TreeResult> |
+        Wrapper<TreeResult[]> |
+        Wrapper<TreeResult | TreeResult[]>
+    )[]): TreeContext<T>;
     use(styleSet: StyleSet | Wrapper<StyleSet>): TreeContext<T>;
     on<E extends keyof HTMLElementEventMap>(key: E, handler: (data: HTMLElementEventMap[E]) => void, options?: AddEventListenerOptions): TreeContext<T>;
 };
@@ -15,29 +22,33 @@ export function tree<E extends keyof HTMLElementTagNameMap>(data: E | Node) {
     const element: Node = typeof data === "string" ? document.createElement(data) : data;
     const context: TreeContext<HTMLElementTagNameMap[E]> = new Proxy({
         element,
-        append(...children: (TreeResult | Wrapper<TreeResult[]>)[]) {
+        append(...children: (TreeResult | TreeResult[] | Wrapper<TreeResult | TreeResult[]>)[]) {
             for (const child of children) {
-                if (!isWrapper<TreeResult[]>(child)) { //插入的不是响应式，直接用
-                    element.appendChild(normalizeTree(child).element);
-                    continue;
+                if (isWrapper<TreeResult | TreeResult[]>(child)) {
+                    let oldChildren: TreeContext[] = [];
+                    const baseAnchor = new Comment("Tree anchor");
+                    element.appendChild(baseAnchor);
+                    const update = (newTrees: TreeResult[] | TreeResult) => {
+                        const normalizedTrees = [...(Array.isArray(newTrees) ? newTrees : [newTrees])];
+                        const newChildren: TreeContext[] = [];
+                        for (const newTree of normalizedTrees) {
+                            const child = render(newTree);
+                            newChildren.push(child);
+                            element.insertBefore(child.element, baseAnchor.nextSibling);
+                        }
+                        for (const oldChild of oldChildren) {
+                            oldChild.element.remove();
+                        }
+                        oldChildren = newChildren;
+                    };
+                    child.event.subcribe(update);
+                    update(child.get());
+                } else {
+                    const children = child;
+                    for (const child of putIn(children)) {
+                        element.appendChild(render(child).element);
+                    }
                 }
-                let oldChildren: TreeContext[] = [];
-                const baseAnchor = new Comment("Just an anchor"); //把锚点存起来，树更新时把新节点加到这个锚点后面
-                element.appendChild(baseAnchor);
-                const update = (newTrees: TreeResult[]) => {
-                    const newChildren: TreeContext[] = [];
-                    for (const newTree of newTrees) {
-                        const child = normalizeTree(newTree);
-                        newChildren.push(child);
-                        element.insertBefore(child.element, baseAnchor.nextSibling); //是要插在锚点的后面，不是前面
-                    }
-                    for (const oldChild of oldChildren) { //新节点创建后把旧的删掉
-                        oldChild.element.remove();
-                    }
-                    oldChildren = newChildren; //下一次更新时，这一次更新的节点就成旧节点了
-                };
-                child.event.subcribe(update); //订阅响应式对象的事件
-                update(child.get());
             }
             return context;
         },

@@ -1,6 +1,7 @@
 import { Empty, Normalize } from "@/util/types";
 import { TreeContext, tree } from "./tree";
 import { composeDict, normalizePropertyDescriptor, validateStore } from "./property";
+import { Wrapper } from "./reactive";
 
 export type RenderResult = {
     mount(to: string | HTMLElement): void;
@@ -23,7 +24,7 @@ export type ComponentPropertyDict<T extends ComponentPropertyStore> = {
     [K in keyof T]: T[K] extends ComponentPropertyDescriptor<unknown, infer R> ? R : never;
 };
 export interface ComponentOption<P extends ComponentPropertyStore> {
-    props: P;
+    props?: P;
 }
 export interface NormalizedComponentOption<P extends ComponentPropertyStore> {
     props: Normalize<P>;
@@ -32,7 +33,10 @@ export const renderResultSymbol = Symbol("RenderResultFlag");
 export function isRenderResult(data: unknown): data is RenderResult {
     return !!data && Object.hasOwn(data, renderResultSymbol) && data[renderResultSymbol] === true;
 }
-export function normalizeTree(nodeTree: TreeResult) {
+export function $<T>(data: Wrapper<T>) {
+    return data as unknown as Wrapper<TreeResult>;
+}
+export function render(nodeTree: TreeResult) {
     let result: TreeContext;
     if (nodeTree instanceof HTMLElement) {
         result = tree(nodeTree);
@@ -53,10 +57,10 @@ export function createComponent<
     options: ComponentOption<P>,
     internalRenderer: (options: ComponentPropertyDict<P>, slot: () => TreeResult) => TreeResult
 ): Component<Normalize<P>> {
-    validateStore(options.props);
+    validateStore(options.props ?? {});
     const propStore = Object.fromEntries(
         Object
-            .entries(options.props)
+            .entries(options.props ?? {})
             .map(([key, value]) => [
                 key,
                 normalizePropertyDescriptor(value),
@@ -64,7 +68,7 @@ export function createComponent<
     ) as Normalize<P>;
     const entryRenderer = (props: ComponentPropertyDict<P>, slot?: Empty | (() => TreeResult)) => {
         const nodeTree = internalRenderer(composeDict(props, propStore), () => slot?.());
-        const result = normalizeTree(nodeTree);
+        const result = render(nodeTree);
         return {
             mount(to: string | HTMLElement) {
                 const targets = typeof to === "string" ? [...document.querySelectorAll<HTMLElement>(to)] : [to];
