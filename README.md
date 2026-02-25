@@ -2,7 +2,7 @@
 
 一个轻量、高性能、类型安全的 Vanilla DOM 响应式 UI 框架。
 
-融合了 Vue 模板指令和 React Hooks 的优点，取两者之长。
+融合了 Vue 模板指令和 React Hooks 的优点，取两者之长。同时运行及其轻量，甚至打包后可以用于 XXXMonkey UserScript。
 
 ## 特性
 
@@ -23,36 +23,39 @@ npm install nine-9
 ## 快速开始
 
 ```typescript
-import { createComponent, wrap, sync, when, tree, styleSet, $ } from "nine-9";
+import { $, createArray, createComponent, styleSet, sync, tree, when, wrap } from "./nine";
 
-const counter = createComponent({
-    initial: {
-        validate: Number.isInteger, // 参数验证器
-        transform: Number,          // 参数转换器
-        required: false,            // 是否必填
-        shadow: 0                   // 默认值
+const Counter = createComponent({ //创建组件
+    props: {
+        initial: { //参数名
+            validate: Number.isInteger, //验证器
+            transform: Number, //转换器
+            required: false, //是否必填
+            shadow: 0, //默认值
+        }
     }
 }, (props) => {
-    const count = wrap(props.initial);                     // 类似 Vue 的 ref
-    const doubled = sync(() => count.get() * 2);           // 类似 computed
-
+    const count = wrap(props.initial); //ref
+    const doubled = sync(() => count.get() * 2, [count]); //computed
     return tree("div")
-        .use(
-            styleSet()
-                .fontSize("20px")
-                .padding("10px")
-        )
+        .use(styleSet().fontSize("20px").padding("10px"))
         .append(
+            "敲木鱼", tree("br"),
             tree("button")
                 .on("click", () => count.set(count.get() + 1))
-                .textContent("点击我"),
-            tree("p").append($(count)),                            // 数据变化时自动更新
-            when(count, tree("p").textContent("count > 0 时显示")), // 条件渲染：v-if
-            tree("p").append($(doubled))                           // 列表渲染：v-for
+                .textContent("点击加一"),
+            tree("button")
+                .on("click", () => count.set(count.get() - 1))
+                .textContent("点击减一"),
+            tree("br"),
+            "当前值：", $(count), //引用响应式的值，类似模板语法{{ count }}
+            "双倍值：", $(doubled),
+            sync(() => createArray(doubled.get(), () => tree("div").textContent("你点了一下")), [doubled]), //列表渲染v-for
+            when(() => count.get() > 10, () => tree("p").textContent("count > 10 时显示"), [count]), //条件渲染v-if
         );
 });
 
-counter({ initial: 0 }).mount("#app");
+Counter({ initial: 0 }).mount("body");
 ```
 
 ## 与 Vue 对比
@@ -63,5 +66,3 @@ counter({ initial: 0 }).mount("#app");
 | `sync()`                     | `computed()` | 响应式计算值   |
 | `when(condition, tree)`      | `v-if`       | 条件渲染       |
 | `sync(() => items.map(...))` | `v-for`      | 列表渲染       |
-
-## API
