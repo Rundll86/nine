@@ -1,11 +1,11 @@
 import { Normalize } from "@/util";
-import { ComponentPropertyDescriptor, ComponentPropertyDict, ComponentPropertyStore } from "./component";
+import { ComponentPropertyDescriptor, ComponentPropertyInputDict, ComponentPropertyOutputDict, ComponentPropertyStore } from "./component";
 import { ConflictionError, MissingFieldError, ValidationFailed } from "@/exceptions";
 
 export function normalizePropertyDescriptor
     <I, O, R extends boolean>(
-    descriptor: ComponentPropertyDescriptor<I, O, R>
-): Required<ComponentPropertyDescriptor<I, O, R>> {
+        descriptor: ComponentPropertyDescriptor<I, O, R>
+    ): Required<ComponentPropertyDescriptor<I, O, R>> {
     return Object.assign({
         validate: () => true,
         transform: x => x,
@@ -26,10 +26,10 @@ export function validateStore(store: ComponentPropertyStore) {
         }
     }
 }
-export function composeDict<T extends ComponentPropertyStore>(input: ComponentPropertyDict<T>, store: Normalize<T>) {
+export function composeDict<T extends ComponentPropertyStore>(input: ComponentPropertyInputDict<T>, store: T) {
     const result: Record<string, unknown> = {};
     for (const propertyKey in store) {
-        const descriptor = store[propertyKey];
+        const descriptor = normalizePropertyDescriptor(store[propertyKey]);
         if (!Object.hasOwn(input, propertyKey)) {
             if (descriptor.required) {
                 throw new MissingFieldError(`Missing a required property ${propertyKey}.`);
@@ -43,5 +43,5 @@ export function composeDict<T extends ComponentPropertyStore>(input: ComponentPr
         }
         result[propertyKey] = descriptor.transform(value);
     }
-    return result as ComponentPropertyDict<T>;
+    return result as ComponentPropertyOutputDict<T>;
 }

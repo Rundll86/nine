@@ -9,25 +9,33 @@ export type RenderResult = {
 } & { [K in typeof renderResultSymbol]: true; };
 export type TreeResult = HTMLElement | TreeContext | string | number | Empty | RenderResult;
 export interface ComponentRenderEntry<P extends ComponentPropertyStore> {
-    (props: ComponentPropertyDict<P>, slot?: Empty | (() => TreeResult)): RenderResult;
+    (props: ComponentPropertyInputDict<P>, slot?: Empty | (() => TreeResult)): RenderResult;
 }
-export type Component<P extends Normalize<ComponentPropertyStore>> =
-    ComponentRenderEntry<P> & NormalizedComponentOption<P>;
-export interface ComponentPropertyDescriptor<I = unknown, O = unknown, R extends boolean = false> {
+export type Component<P extends ComponentPropertyStore> =
+    ComponentRenderEntry<P> & ComponentOption<P>;
+export interface ComponentPropertyDescriptor<I = unknown, O = unknown, R extends boolean = boolean> {
     validate?: (data: I) => boolean;
     transform: (data: I) => O;
     shadow?: O;
     required?: R;
 }
 export type ComponentPropertyStore = Record<string, ComponentPropertyDescriptor>;
-export type ComponentPropertyDict<T extends ComponentPropertyStore> = {
-    [K in keyof T]: T[K] extends ComponentPropertyDescriptor<unknown, infer R> ? R : never;
+export type ComponentPropertyInputDict<P extends ComponentPropertyStore> = {
+    [K in keyof P as P[K]["required"] extends true ? K : never]:
+    P[K] extends ComponentPropertyDescriptor<unknown, infer R>
+    ? R : never;
+} & {
+    [K in keyof P as P[K]["required"] extends false | unknown ? K : never]?:
+    P[K] extends ComponentPropertyDescriptor<unknown, infer R>
+    ? R | Empty : never;
+}
+export type ComponentPropertyOutputDict<P extends ComponentPropertyStore> = {
+    [K in keyof P]:
+    P[K] extends ComponentPropertyDescriptor<unknown, infer R>
+    ? R : never;
 };
 export interface ComponentOption<P extends ComponentPropertyStore> {
     props?: P;
-}
-export interface NormalizedComponentOption<P extends ComponentPropertyStore> {
-    props: Normalize<P>;
 }
 export const renderResultSymbol = Symbol("RenderResultFlag");
 export function isRenderResult(data: unknown): data is RenderResult {
@@ -55,8 +63,8 @@ export function createComponent<
     P extends ComponentPropertyStore
 >(
     options: ComponentOption<P>,
-    internalRenderer: (options: ComponentPropertyDict<P>, slot: () => TreeResult) => TreeResult
-): Component<Normalize<P>> {
+    internalRenderer: (options: ComponentPropertyOutputDict<P>, slot: () => TreeResult) => TreeResult
+): Component<P> {
     validateStore(options.props ?? {});
     const propStore = Object.fromEntries(
         Object
@@ -65,8 +73,8 @@ export function createComponent<
                 key,
                 normalizePropertyDescriptor(value),
             ])
-    ) as Normalize<P>;
-    const entryRenderer = (props: ComponentPropertyDict<P>, slot?: Empty | (() => TreeResult)) => {
+    ) as P;
+    const entryRenderer = (props: ComponentPropertyInputDict<P>, slot?: Empty | (() => TreeResult)) => {
         const nodeTree = internalRenderer(composeDict(props, propStore), () => slot?.());
         const result = render(nodeTree);
         return {
@@ -82,5 +90,5 @@ export function createComponent<
     };
     return Object.assign(entryRenderer, {
         props: propStore
-    } satisfies NormalizedComponentOption<P>) as unknown as Component<Normalize<P>>;
+    } satisfies ComponentOption<P>);
 }
