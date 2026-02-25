@@ -4,12 +4,6 @@ import { composeDict, normalizePropertyDescriptor, validateStore } from "./prope
 import { Wrapper } from "./reactive";
 import { SlotInput, SlotOutput, pipeExtract } from "./slot";
 
-export type RenderResult = {
-    mount(to: string | HTMLElement): void;
-    $: TreeContext;
-} & { [K in typeof renderResultSymbol]: true; };
-
-export type TreeResult = HTMLElement | TreeContext | string | number | EmptyValue | RenderResult;
 export interface ComponentRenderEntry<P extends ComponentPropertyStore> {
     (props?: ComponentPropertyInputDict<P>, slot?: SlotInput): RenderResult;
 }
@@ -39,13 +33,17 @@ export type ComponentPropertyOutputDict<P extends ComponentPropertyStore> = {
 export interface ComponentOption<P extends ComponentPropertyStore> {
     props?: P;
 }
-export const renderResultSymbol = Symbol("RenderResultFlag");
-export function isRenderResult(data: unknown): data is RenderResult {
-    return !!data && Object.hasOwn(data, renderResultSymbol) && data[renderResultSymbol] === true;
-}
-export function $<T>(data: Wrapper<T>) {
-    return data as unknown as Wrapper<TreeResult>;
-}
+export type RenderResult = {
+    mount(to: string | HTMLElement): void;
+    $: TreeContext;
+} & { [K in typeof renderResultSymbol]: true; };
+export type TreeResult =
+    HTMLElement |
+    TreeContext |
+    string |
+    number |
+    EmptyValue |
+    RenderResult;
 export function render(nodeTree: TreeResult) {
     let result: TreeContext;
     if (nodeTree instanceof HTMLElement) {
@@ -60,6 +58,13 @@ export function render(nodeTree: TreeResult) {
         result = nodeTree;
     }
     return result;
+}
+export const renderResultSymbol = Symbol("RenderResultFlag");
+export function isRenderResult(data: unknown): data is RenderResult {
+    return !!data && Object.hasOwn(data, renderResultSymbol) && data[renderResultSymbol] === true;
+}
+export function $<T>(data: Wrapper<T>) {
+    return data as unknown as Wrapper<TreeResult>;
 }
 export function createComponent<
     P extends ComponentPropertyStore

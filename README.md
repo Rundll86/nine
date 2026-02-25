@@ -2,7 +2,8 @@
 
 一个轻量、高性能、类型安全的 Vanilla DOM 响应式 UI 框架。
 
-融合了 Vue 模板指令和 React Hooks 的优点，取两者之长。同时运行及其轻量，甚至打包后可以用于 XXXMonkey UserScript。
+融合了 Vue 模板指令和 React Hooks 的优点，取两者之长。
+同时运行及其轻量，甚至打包后可以用于 XXXMonkey UserScript。
 
 ## 特性
 
@@ -66,3 +67,13 @@ Counter({ initial: 0 }).mount("body");
 | `sync()`                     | `computed()` | 响应式计算值   |
 | `when(condition, tree)`      | `v-if`       | 条件渲染       |
 | `sync(() => items.map(...))` | `v-for`      | 列表渲染       |
+
+## 运行时特性
+
+### 性能
+
+由于框架不需要使用 **Runtime** 伴随运行，也无需通过虚拟节点重新生成整个节点树（对节点树的更改完全基于原生DOM操作命令），因此应用的运行性能相当高，甚至可以媲美Vanilla.js的速度了。
+
+### 使用
+
+框架处理动态的节点树时，本质上是通过对新旧节点的增删改查实现。但不同于 Vue 的是，**nine-9** 不需要分析diff树，用列表渲染（`sync` ← `v-for`）举例，框架使用 `TreeContext` 接口来描述一个XML节点，**HTML元素、字符串、数字、各类空值（null、undefined）、组件渲染结果**都可以被归一化为一个 `TreeContext` 接口，而这个接口必定会用于封装一个非空的XML节点，当使用 `append` 方法添加一个响应式数组时，`TreeContext` 会首先在当前封装的节点最后添加一个注释节点用于当做锚点，旧列表中渲染出的节点将会被删除，新列表中的节点插入到锚点的后面。

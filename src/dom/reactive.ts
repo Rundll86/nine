@@ -9,7 +9,7 @@ export type Wrapper<T> = {
     updateOnly(): void;
     event: EventSubcriber<[T, T]>;
 } & { [K in typeof wrapperSymbol]: true; };
-export function wrap<T>(initialData: T): Wrapper<T> {
+export function wrap<T>(initialData: T, wrapperOptions?: Partial<Wrapper<T>>): Wrapper<T> {
     const arrayActions = ["push", "pop", "shift", "unshift", "splice", "sort", "reverse"];
     const patch = (data: T) => {
         if (!Array.isArray(data)) { return data; }
@@ -75,7 +75,7 @@ export function wrap<T>(initialData: T): Wrapper<T> {
         event,
         [wrapperSymbol]: true
     };
-    return wrapper;
+    return { ...wrapper, ...wrapperOptions ?? {} };
 }
 export function sync<R>(effectRenderer: () => R, dependencies: unknown[] = []): Wrapper<R> {
     const internalWrapper = wrap(effectRenderer());
