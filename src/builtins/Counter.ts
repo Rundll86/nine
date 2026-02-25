@@ -1,4 +1,4 @@
-import { $, createComponent, render, sync, tree, TreeResult, wrap, Wrapper } from "@";
+import { $, createComponent, tree, wrap } from "@";
 
 export default createComponent({
     props: {
@@ -13,6 +13,13 @@ export default createComponent({
     const currentValue = wrap(props.initialValue);
     return tree("div")
         .append(
-            $(currentValue)
+            "当前数值：",
+            $(currentValue),
+            tree("button")
+                .textContent("点击加一")
+                .on("click", () => currentValue.set(currentValue.get() + 1)),
+            tree("button")
+                .textContent("点击减一")
+                .on("click", () => currentValue.set(currentValue.get() - 1))
         );
 });

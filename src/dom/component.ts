@@ -77,7 +77,7 @@ export function createComponent<
                 }
             },
             $: result,
-            [renderResultSymbol]: true as true
+            [renderResultSymbol]: true as const
         };
     };
     return Object.assign(entryRenderer, {

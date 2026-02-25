@@ -1,11 +1,11 @@
-import { Normalize, Valueof } from "@/util";
+import { Normalize } from "@/util";
 import { ComponentPropertyDescriptor, ComponentPropertyDict, ComponentPropertyStore } from "./component";
 import { ConflictionError, MissingFieldError, ValidationFailed } from "@/exceptions";
 
 export function normalizePropertyDescriptor
     <I, O, R extends boolean>(
-        descriptor: ComponentPropertyDescriptor<I, O, R>
-    ): Required<ComponentPropertyDescriptor<I, O, R>> {
+    descriptor: ComponentPropertyDescriptor<I, O, R>
+): Required<ComponentPropertyDescriptor<I, O, R>> {
     return Object.assign({
         validate: () => true,
         transform: x => x,
