@@ -1,9 +1,15 @@
 {
-    "name": "nine",
+    "name": "nine-ui",
     "version": "1.0.0",
-    "description": "",
+    "description": "A fastly reactively ui framework running on Vanilla 9.",
     "main": "dist/index.js",
     "types": "dist/index.d.ts",
+    "keywords": [
+        "ui",
+        "framework",
+        "vanilla",
+        "reactive"
+    ],
     "scripts": {
         "dev": "tsc --watch",
         "build": "tsc",
@@ -11,7 +17,6 @@
         "lint:fix": "eslint . --fix",
         "check-type": "tsc --noEmit"
     },
-    "keywords": [],
     "author": "",
     "license": "MIT",
     "packageManager": "pnpm@10.28.2",
