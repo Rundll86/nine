@@ -1,4 +1,4 @@
-import { Empty, Normalize } from "@/util/types";
+import { Empty as EmptyValue, Normalize } from "@/util/types";
 import { TreeContext, tree } from "./tree";
 import { composeDict, normalizePropertyDescriptor, validateStore } from "./property";
 import { Wrapper } from "./reactive";
@@ -7,9 +7,9 @@ export type RenderResult = {
     mount(to: string | HTMLElement): void;
     $: TreeContext;
 } & { [K in typeof renderResultSymbol]: true; };
-export type TreeResult = HTMLElement | TreeContext | string | number | Empty | RenderResult;
+export type TreeResult = HTMLElement | TreeContext | string | number | EmptyValue | RenderResult;
 export interface ComponentRenderEntry<P extends ComponentPropertyStore> {
-    (props: ComponentPropertyInputDict<P>, slot?: Empty | (() => TreeResult)): RenderResult;
+    (props: ComponentPropertyInputDict<P>, slot?: EmptyValue | (() => TreeResult)): RenderResult;
 }
 export type Component<P extends ComponentPropertyStore> =
     ComponentRenderEntry<P> & ComponentOption<P>;
@@ -27,7 +27,7 @@ export type ComponentPropertyInputDict<P extends ComponentPropertyStore> = {
 } & {
     [K in keyof P as P[K]["required"] extends false | unknown ? K : never]?:
     P[K] extends ComponentPropertyDescriptor<unknown, infer R>
-    ? R | Empty : never;
+    ? R | (P[K]["shadow"] extends unknown ? EmptyValue : R) : never;
 }
 export type ComponentPropertyOutputDict<P extends ComponentPropertyStore> = {
     [K in keyof P]:
@@ -74,7 +74,7 @@ export function createComponent<
                 normalizePropertyDescriptor(value),
             ])
     ) as P;
-    const entryRenderer = (props: ComponentPropertyInputDict<P>, slot?: Empty | (() => TreeResult)) => {
+    const entryRenderer = (props: ComponentPropertyInputDict<P>, slot?: EmptyValue | (() => TreeResult)) => {
         const nodeTree = internalRenderer(composeDict(props, propStore), () => slot?.());
         const result = render(nodeTree);
         return {

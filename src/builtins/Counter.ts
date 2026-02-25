@@ -5,7 +5,7 @@ export default createComponent({
         initialValue: {
             transform: Number,
             validate: Number.isInteger,
-            shadow: 0,
+            // shadow: 0,
             // required: false
         }
     }
