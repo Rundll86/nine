@@ -26,7 +26,8 @@ export function validateStore(store: ComponentPropertyStore) {
         }
     }
 }
-export function composeDict<T extends ComponentPropertyStore>(input: ComponentPropertyInputDict<T>, store: T) {
+export function composeDict<T extends ComponentPropertyStore>(input?: ComponentPropertyInputDict<T>, store?: T) {
+    if (!input) input = {} as ComponentPropertyInputDict<T>;
     const result: Record<string, unknown> = {};
     for (const propertyKey in store) {
         const descriptor = normalizePropertyDescriptor(store[propertyKey]);

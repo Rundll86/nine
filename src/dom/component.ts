@@ -1,15 +1,17 @@
-import { Empty as EmptyValue, Normalize } from "@/util/types";
+import { EmptyValue } from "@/util/types";
 import { TreeContext, tree } from "./tree";
 import { composeDict, normalizePropertyDescriptor, validateStore } from "./property";
 import { Wrapper } from "./reactive";
+import { SlotInput, SlotOutput, pipeExtract } from "./slot";
 
 export type RenderResult = {
     mount(to: string | HTMLElement): void;
     $: TreeContext;
 } & { [K in typeof renderResultSymbol]: true; };
+
 export type TreeResult = HTMLElement | TreeContext | string | number | EmptyValue | RenderResult;
 export interface ComponentRenderEntry<P extends ComponentPropertyStore> {
-    (props: ComponentPropertyInputDict<P>, slot?: EmptyValue | (() => TreeResult)): RenderResult;
+    (props?: ComponentPropertyInputDict<P>, slot?: SlotInput): RenderResult;
 }
 export type Component<P extends ComponentPropertyStore> =
     ComponentRenderEntry<P> & ComponentOption<P>;
@@ -63,7 +65,7 @@ export function createComponent<
     P extends ComponentPropertyStore
 >(
     options: ComponentOption<P>,
-    internalRenderer: (options: ComponentPropertyOutputDict<P>, slot: () => TreeResult) => TreeResult
+    internalRenderer: (options: ComponentPropertyOutputDict<P>, slot: SlotOutput) => TreeResult
 ): Component<P> {
     validateStore(options.props ?? {});
     const propStore = Object.fromEntries(
@@ -74,8 +76,8 @@ export function createComponent<
                 normalizePropertyDescriptor(value),
             ])
     ) as P;
-    const entryRenderer = (props: ComponentPropertyInputDict<P>, slot?: EmptyValue | (() => TreeResult)) => {
-        const nodeTree = internalRenderer(composeDict(props, propStore), () => slot?.());
+    const entryRenderer = (props?: ComponentPropertyInputDict<P>, slot?: SlotInput) => {
+        const nodeTree = internalRenderer(composeDict(props, propStore), pipeExtract(slot));
         const result = render(nodeTree);
         return {
             mount(to: string | HTMLElement) {
