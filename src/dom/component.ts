@@ -19,11 +19,11 @@ export type ComponentPropertyStore = Record<string, ComponentPropertyDescriptor>
 export type ComponentPropertyInputDict<P extends ComponentPropertyStore> = {
     [K in keyof P as P[K]["required"] extends true ? K : never]:
     P[K] extends ComponentPropertyDescriptor<unknown, infer R>
-    ? R : never;
+    ? R | Wrapper<R> : never;
 } & {
     [K in keyof P as P[K]["required"] extends false | unknown ? K : never]?:
     P[K] extends ComponentPropertyDescriptor<unknown, infer R>
-    ? R | (P[K]["shadow"] extends unknown ? EmptyValue : R) : never;
+    ? R | Wrapper<R> | EmptyValue : never;
 }
 export type ComponentPropertyOutputDict<P extends ComponentPropertyStore> = {
     [K in keyof P]:

@@ -1,6 +1,6 @@
-import { Normalize } from "@/util";
 import { ComponentPropertyDescriptor, ComponentPropertyInputDict, ComponentPropertyOutputDict, ComponentPropertyStore } from "./component";
 import { ConflictionError, MissingFieldError, ValidationFailed } from "@/exceptions";
+import { isWrapper } from "./reactive";
 
 export function normalizePropertyDescriptor
     <I, O, R extends boolean>(
@@ -38,11 +38,18 @@ export function composeDict<T extends ComponentPropertyStore>(input?: ComponentP
             result[propertyKey] = descriptor.shadow;
             continue;
         }
-        const value = input[propertyKey];
-        if (!descriptor.validate(value)) {
-            throw new ValidationFailed(`The input value of ${propertyKey} can't pass the validation.`);
+        const update = (inputValue: unknown) => {
+            if (!descriptor.validate(inputValue)) {
+                throw new ValidationFailed(`The input value of ${propertyKey} can't pass the validation.`);
+            }
+            result[propertyKey] = descriptor.transform(inputValue);
+        };
+        if (isWrapper(input[propertyKey])) {
+            input[propertyKey].event.subcribe(update);
+            update(input[propertyKey].get());
+        } else {
+            update(input[propertyKey]);
         }
-        result[propertyKey] = descriptor.transform(value);
     }
     return result as ComponentPropertyOutputDict<T>;
 }

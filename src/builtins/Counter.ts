@@ -1,24 +1,31 @@
-import { $, createComponent, tree, wrap } from "@";
+import { $, createComponent, tree, sync, styleSet, createArray, when, wrap } from "@";
 
-export default createComponent({
+export default createComponent({ //创建组件
     props: {
-        initialValue: {
-            transform: Number,
-            validate: Number.isInteger,
-            // shadow: 0,
-            // required: false
+        initial: { //参数名
+            validate: Number.isInteger, //验证器
+            transform: Number, //转换器
+            required: false, //是否必填
+            shadow: 0, //默认值
         }
     }
 }, (props) => {
-    const currentValue = wrap(props.initialValue);
+    const count = wrap(props.initial); //ref
+    const doubled = sync(() => count.get() * 2, [count]); //computed
     return tree("div")
+        .use(styleSet().fontSize("20px").padding("10px"))
         .append(
-            "当前数值：", $(currentValue),
+            "敲木鱼", tree("br"),
             tree("button")
-                .textContent("点击加一")
-                .on("click", () => currentValue.set(currentValue.get() + 1)),
+                .on("click", () => count.set(count.get() + 1))
+                .textContent("点击加一"),
             tree("button")
-                .textContent("点击减一")
-                .on("click", () => currentValue.set(currentValue.get() - 1))
+                .on("click", () => count.set(count.get() - 1))
+                .textContent("点击减一"),
+            tree("br"),
+            "当前值：", $(count), //引用响应式的值，类似模板语法{{ count }}
+            "双倍值：", $(doubled),
+            sync(() => createArray(doubled.get(), () => tree("div").textContent("你点了一下")), [doubled]), //列表渲染v-for
+            when(() => count.get() > 10, () => tree("p").textContent("count > 10 时显示"), [count]), //条件渲染v-if
         );
 });
