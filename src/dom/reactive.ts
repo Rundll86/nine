@@ -93,7 +93,7 @@ export function sync<R>(effectRenderer: () => R, dependencies: unknown[] = []): 
     }
     return internalWrapper;
 }
-export function when(condition: Wrapper<boolean> | (() => boolean), tree: TreeResult, dependencies: unknown[] = []) {
+export function when(condition: Wrapper<boolean> | (() => boolean), tree: () => TreeResult, dependencies: unknown[] = []) {
     return sync(() => {
         let result: boolean;
         if (typeof condition === "function") {
@@ -101,7 +101,7 @@ export function when(condition: Wrapper<boolean> | (() => boolean), tree: TreeRe
         } else {
             result = condition.get();
         }
-        return [result ? tree : null];
+        return [result ? tree() : null];
     }, [...dependencies, ...(isWrapper(condition) ? [condition] : [])]);
 }
 export function isWrapper<T>(data: unknown): data is Wrapper<T> {
