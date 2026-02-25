@@ -1,16 +1,19 @@
 import { ComponentPropertyDescriptor, ComponentPropertyInputDict, ComponentPropertyOutputDict, ComponentPropertyStore } from "./component";
-import { ConflictionError, MissingFieldError, ValidationFailed } from "@/exceptions";
-import { isWrapper } from "./reactive";
+import { AccessError, ConflictionError, MissingFieldError, ValidationFailed } from "@/exceptions";
+import { isWrapper, wrap } from "./reactive";
+import { Valueof } from "@/util";
 
 export function normalizePropertyDescriptor
     <I, O, R extends boolean>(
-    descriptor: ComponentPropertyDescriptor<I, O, R>
-): Required<ComponentPropertyDescriptor<I, O, R>> {
+        descriptor: ComponentPropertyDescriptor<I, O, R>
+    ): Required<ComponentPropertyDescriptor<I, O, R>> {
     return Object.assign({
         validate: () => true,
         transform: x => x,
         shadow: null,
-        required: false
+        required: false,
+        downloadable: true,
+        uploadable: false
     } satisfies Required<ComponentPropertyDescriptor>, descriptor);
 }
 export function validateStore(store: ComponentPropertyStore) {
@@ -38,17 +41,37 @@ export function composeDict<T extends ComponentPropertyStore>(input?: ComponentP
             result[propertyKey] = descriptor.shadow;
             continue;
         }
-        const update = (inputValue: unknown) => {
+        const update = (inputValue: unknown, firstSet: boolean) => {
+            if (!firstSet && !descriptor.downloadable) {
+                console.warn(`Property ${propertyKey} isn't downloadable but being emitted.`);
+                return;
+            }
             if (!descriptor.validate(inputValue)) {
                 throw new ValidationFailed(`The input value of ${propertyKey} can't pass the validation.`);
             }
-            result[propertyKey] = descriptor.transform(inputValue);
+            const transformed = descriptor.transform(inputValue)
+            if (isWrapper(result[propertyKey])) {
+                result[propertyKey].set(transformed);
+            } else {
+                const wrapper = wrap(transformed);
+                result[propertyKey] = wrapper;
+                wrapper.event.subcribe((newData) => {
+                    if (!descriptor.uploadable) {
+                        throw new AccessError(`Property ${propertyKey} isn't uploadable but being set.`);
+                    }
+                    if (!isWrapper(input[propertyKey])) {
+                        console.warn(`Can't upload to the upstream of ${propertyKey}.`);
+                        return;
+                    }
+                    input[propertyKey].set(newData);
+                });
+            }
         };
         if (isWrapper(input[propertyKey])) {
-            input[propertyKey].event.subcribe(update);
-            update(input[propertyKey].get());
+            input[propertyKey].event.subcribe(e => update(e, false));
+            update(input[propertyKey].get(), true);
         } else {
-            update(input[propertyKey]);
+            update(input[propertyKey], true);
         }
     }
     return result as ComponentPropertyOutputDict<T>;

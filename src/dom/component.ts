@@ -14,6 +14,8 @@ export interface ComponentPropertyDescriptor<I = unknown, O = unknown, R extends
     transform: (data: I) => O;
     shadow?: O;
     required?: R;
+    downloadable?: boolean;
+    uploadable?: boolean;
 }
 export type ComponentPropertyStore = Record<string, ComponentPropertyDescriptor>;
 export type ComponentPropertyInputDict<P extends ComponentPropertyStore> = {
@@ -28,7 +30,7 @@ export type ComponentPropertyInputDict<P extends ComponentPropertyStore> = {
 export type ComponentPropertyOutputDict<P extends ComponentPropertyStore> = {
     [K in keyof P]:
     P[K] extends ComponentPropertyDescriptor<unknown, infer R>
-    ? R : never;
+    ? Wrapper<R> : never;
 };
 export interface ComponentOption<P extends ComponentPropertyStore> {
     props?: P;

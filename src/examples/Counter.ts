@@ -10,7 +10,7 @@ export default createComponent({ //创建组件
         }
     }
 }, (props) => {
-    const count = wrap(props.initial); //ref
+    const count = wrap(props.initial.get()); //ref
     const doubled = sync(() => count.get() * 2, [count]); //computed
     return tree("div")
         .use(styleSet().fontSize("20px").padding("10px"))
