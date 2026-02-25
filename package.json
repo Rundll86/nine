@@ -1,9 +1,18 @@
 {
-    "name": "nine-ui",
+    "name": "nine-9",
     "version": "1.0.0",
-    "description": "A fastly reactively ui framework running on Vanilla 9.",
+    "description": "一个轻量、高性能、类型安全的 Vanilla DOM 响应式 UI 框架。",
     "main": "dist/index.js",
     "types": "dist/index.d.ts",
+    "files": [
+        "dist"
+    ],
+    "readme": "readme.md",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/Rundll86/nine.git"
+    },
+    "homepage": "https://github.com/Rundll86/nine#readme",
     "keywords": [
         "ui",
         "framework",
@@ -17,7 +26,6 @@
         "lint:fix": "eslint . --fix",
         "check-type": "tsc --noEmit"
     },
-    "author": "",
     "license": "MIT",
     "packageManager": "pnpm@10.28.2",
     "devDependencies": {
