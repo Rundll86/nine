@@ -71,7 +71,7 @@ export type SourceTree = [
     ComponentInstance,
 ][number];
 
-export function render(nodeTree: SourceTree) {
+export function render(nodeTree: SourceTree): HostTree {
     let result: HostTree;
     if (nodeTree instanceof HTMLElement) {
         result = tree(nodeTree);
