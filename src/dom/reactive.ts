@@ -5,7 +5,6 @@ export const wrapperSymbol = Symbol("WrapperFlag");
 export type Wrapper<T> = {
     get(): T;
     set(newData: T): void;
-    emitEvent(newData: T): void;
     updateOnly(): void;
     event: EventSubcriber<[T, T]>;
 } & { [K in typeof wrapperSymbol]: true; };
@@ -23,7 +22,7 @@ export function wrap<T>(initialData: T, wrapperOptions?: Partial<Wrapper<T>>): W
                             if (Array.isArray(oldData)) {
                                 oldData = [...oldData] as T;
                                 const result = originalMethod.call(target, ...args);
-                                wrapper.emitEvent(wrapper.get());
+                                wrapper.event.emit(wrapper.get(), oldData);
                                 return result;
                             }
                         };
@@ -39,7 +38,7 @@ export function wrap<T>(initialData: T, wrapperOptions?: Partial<Wrapper<T>>): W
                     if (Array.isArray(oldData)) {
                         oldData = [...oldData] as T;
                         const result = Reflect.set(target, p, newValue, receiver);
-                        wrapper.emitEvent(wrapper.get());
+                        wrapper.event.emit(wrapper.get(), oldData);
                         return result;
                     }
                 }
@@ -56,21 +55,19 @@ export function wrap<T>(initialData: T, wrapperOptions?: Partial<Wrapper<T>>): W
         get() { return currentData; },
         set(newData) {
             if (currentData !== newData) {
-                const oldData = currentData;
+                let oldData = currentData;
                 if (Array.isArray(oldData) && oldRevoke) {
                     oldRevoke();
+                    oldData = [...oldData] as T;
                     currentData = patch(newData);
                 } else {
                     currentData = newData;
                 };
-                this.emitEvent(newData);
+                this.event.emit(newData, oldData);
             }
         },
-        emitEvent(newData) {
-            event.emit(newData, currentData);
-        },
         updateOnly() {
-            this.emitEvent(this.get());
+            this.event.emit(this.get(), this.get());
         },
         event,
         [wrapperSymbol]: true

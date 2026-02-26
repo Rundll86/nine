@@ -2,8 +2,8 @@ import { $, createComponent, sync, tree, TreeResult } from "@";
 
 function isNumeric(value: unknown) {
     if (value === null || value === undefined) return false;
-    if (typeof value === 'number') return isFinite(value);
-    if (typeof value === 'string') return value.trim() !== '' && !isNaN(Number(value));
+    if (typeof value === "number") return isFinite(value);
+    if (typeof value === "string") return value.trim() !== "" && !isNaN(Number(value));
     return false;
 }
 export default createComponent({
