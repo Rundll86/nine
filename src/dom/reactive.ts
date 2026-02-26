@@ -1,6 +1,6 @@
 import { EventSubcriber } from "@/channel/event-subcriber";
 import { SourceTree } from "./component";
-import { WRAPPER } from "@/constants/flags";
+import { matchFlag, WRAPPER } from "@/constants/flags";
 
 export type Wrapper<T> = {
     get(): T;
@@ -85,7 +85,7 @@ export function sync<R>(effectRenderer: () => R, dependencies: unknown[] = []): 
         }
     };
     for (const dependency of dependencies) {
-        if (!isWrapper(dependency)) continue;
+        if (!matchFlag(dependency, WRAPPER)) continue;
         dependency.event.subcribe(update);
     }
     return internalWrapper;
@@ -99,8 +99,5 @@ export function when(condition: Wrapper<boolean> | (() => boolean), tree: () => 
             result = condition.get();
         }
         return [result ? tree() : null];
-    }, [...dependencies, ...(isWrapper(condition) ? [condition] : [])]);
-}
-export function isWrapper<T>(data: unknown): data is Wrapper<T> {
-    return !!data && Object.hasOwn(data, WRAPPER) && data[WRAPPER] === true;
+    }, [...dependencies, ...(matchFlag(condition, WRAPPER) ? [condition] : [])]);
 }

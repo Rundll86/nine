@@ -1,6 +1,7 @@
 import { ComponentPropertyDescriptor, ComponentPropertyInputDict, ComponentPropertyOutputDict, ComponentPropertyStore } from "./component";
 import { AccessError, ConflictionError, MissingFieldError, ValidationFailed } from "@/exceptions";
-import { isWrapper, wrap } from "./reactive";
+import { matchFlag, WRAPPER } from "@/constants/flags";
+import { wrap } from "./reactive";
 
 export function normalizePropertyDescriptor
     <I, O, R extends boolean>(
@@ -34,13 +35,13 @@ export function hostdown<T extends ComponentPropertyStore>(upstream?: ComponentP
     for (const propertyKey in store) {
         const descriptor = normalizePropertyDescriptor(store[propertyKey]);
         const setValue = (newValue: unknown) => {
-            if (isWrapper(downstream[propertyKey])) {
+            if (matchFlag(downstream[propertyKey], WRAPPER)) {
                 downstream[propertyKey].set(newValue);
             } else {
                 const wrapper = wrap(newValue);
                 downstream[propertyKey] = wrapper;
                 wrapper.event.subcribe((newData) => {
-                    if (!isWrapper(upstream[propertyKey]) || !isWrapper(downstream[propertyKey])) return;
+                    if (!matchFlag(upstream[propertyKey], WRAPPER) || !matchFlag(downstream[propertyKey], WRAPPER)) return;
                     if (downstream[propertyKey].get() === upstream[propertyKey].get()) return;
                     if (!descriptor.uploadable) throw new AccessError(`Property ${propertyKey} isn't uploadable but being set.`);
                     upstream[propertyKey].set(newData);
@@ -64,7 +65,7 @@ export function hostdown<T extends ComponentPropertyStore>(upstream?: ComponentP
             setValue(descriptor.shadow);
             continue;
         }
-        if (isWrapper(upstream[propertyKey])) {
+        if (matchFlag(upstream[propertyKey], WRAPPER)) {
             upstream[propertyKey].event.subcribe(e => update(e, false));
             update(upstream[propertyKey].get(), true);
         } else {

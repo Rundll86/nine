@@ -1,9 +1,9 @@
 import { camelToHyphen } from "@/util/char";
 import { render, SourceTree } from "./component";
-import { isWrapper, Wrapper } from "./reactive";
+import { Wrapper } from "./reactive";
 import { StyleSet } from "./style";
 import { putIn } from "@/util/array";
-import { HOST_TREE } from "@/constants/flags";
+import { HOST_TREE, matchFlag, WRAPPER } from "@/constants/flags";
 
 export type HostTree<T extends HTMLElement = HTMLElement> = {
     [K in keyof T as T[K] extends (...args: unknown[]) => unknown ? never : K]: (data: T[K] | Wrapper<T[K]>) => HostTree<T>;
@@ -26,7 +26,7 @@ export function tree<E extends keyof HTMLElementTagNameMap>(data: E | Node) {
         element,
         append(...children: (SourceTree | SourceTree[] | Wrapper<SourceTree | SourceTree[]>)[]) {
             for (const child of children) {
-                if (isWrapper<SourceTree | SourceTree[]>(child)) {
+                if (matchFlag<SourceTree | SourceTree[], typeof WRAPPER>(child, WRAPPER)) {
                     let oldChildren: HostTree[] = [];
                     const baseAnchor = new Comment("Tree anchor");
                     element.appendChild(baseAnchor);
@@ -61,7 +61,7 @@ export function tree<E extends keyof HTMLElementTagNameMap>(data: E | Node) {
                         element.style.setProperty(camelToHyphen(String(key)), value);
                     }
                 };
-                if (isWrapper<StyleSet>(styleSet)) {
+                if (matchFlag<StyleSet, typeof WRAPPER>(styleSet, WRAPPER)) {
                     styleSet.event.subcribe((newData) => update(newData.rules));
                     update(styleSet.get().rules);
                 } else {
@@ -83,7 +83,7 @@ export function tree<E extends keyof HTMLElementTagNameMap>(data: E | Node) {
                 return Reflect.get(target, p, receiver);
             } else {
                 return (data: HTMLElementTagNameMap[E][P] | Wrapper<HTMLElementTagNameMap[E][P]>) => {
-                    if (isWrapper<HTMLElementTagNameMap[E][P]>(data)) {
+                    if (matchFlag<HTMLElementTagNameMap[E][P], typeof WRAPPER>(data, WRAPPER)) {
                         const update = (newData: HTMLElementTagNameMap[E][P]) => element[p] = newData;
                         data.event.subcribe(update);
                         update(data.get());
