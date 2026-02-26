@@ -6,6 +6,8 @@ import { SlotInput, SlotOutput, pipeExtract } from "./slot";
 import { BrokenRendererError } from "@/exceptions";
 import { appendFlag, COMPONENT_INSTANCE, HOST_TREE, matchFlag } from "@/constants/flags";
 import { EventDescriptor } from "./event";
+import { StyleSet } from "./style";
+import { hyphenToCamel } from "@/util";
 
 export interface ComponentRenderEntry<P extends ComponentPropertyStore, E extends ComponentEventStore> {
     (props?: ComponentPropertyInputDict<P>, slot?: SlotInput): ComponentInstance<E>;
@@ -52,6 +54,7 @@ export type ComponentPropertyOutputDict<P extends ComponentPropertyStore> = {
 export interface ComponentOption<P extends ComponentPropertyStore, E extends ComponentEventStore> {
     props?: P;
     events?: E;
+    styles?: StyleSet[];
 }
 export type ComponentInstance<E extends ComponentEventStore = ComponentEventStore> = {
     mount(to: string | HTMLElement): void;
@@ -91,6 +94,20 @@ export function render(nodeTree: SourceTree): HostTree {
 export function $<T>(data: Wrapper<T>) {
     return data as unknown as Wrapper<SourceTree>;
 }
+export function flagment<T extends string>(uuid: T) {
+    return `nine_${uuid.replaceAll("-", "_")}` as const;
+}
+export function attachUUID(root: Node, uuid: string): Node {
+    for (const node of [root, ...root.childNodes]) {
+        if (node instanceof HTMLElement) {
+            node.dataset[flagment(uuid)] = "true";
+        }
+        if (node !== root && node.childNodes.length > 0) {
+            attachUUID(node, uuid);
+        }
+    }
+    return root;
+}
 export function createComponent<
     P extends ComponentPropertyStore,
     E extends EventDescriptor<unknown, string>
@@ -107,6 +124,13 @@ export function createComponent<
                 normalizePropertyDescriptor(value),
             ])
     ) as P;
+    const rawComponentUUID = crypto.randomUUID();
+    const flagmentedUUID = flagment(rawComponentUUID);
+    if (options.styles) {
+        for (const styleSet of options.styles) {
+            styleSet.apply(`[data-${flagmentedUUID}="true"]`);
+        }
+    }
     const entryRenderer = (props?: ComponentPropertyInputDict<P>, slot?: SlotInput) => {
         const nodeTree = internalRenderer(hostdown(props, propStore), pipeExtract(slot), (key, data) => {
             const targetEvent = options.events?.find(e => e.name === key);
@@ -118,6 +142,7 @@ export function createComponent<
             }));
         });
         const result = render(nodeTree);
+        attachUUID(result.element, rawComponentUUID);
         return appendFlag({
             mount(to: string | HTMLElement) {
                 const targets = typeof to === "string" ? [...document.querySelectorAll<HTMLElement>(to)] : [to];
