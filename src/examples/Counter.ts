@@ -1,4 +1,4 @@
-import { $, createComponent, tree, sync, styleSet, createArray, when } from "@";
+import { $, createComponent, tree, sync, styleSet, createArray, when, defineEvent } from "@";
 
 export default createComponent({ //创建组件
     props: {
@@ -10,7 +10,23 @@ export default createComponent({ //创建组件
             downloadable: true, //（上游→下游）
             uploadable: true, //（下游→上游），v-model双向绑定
         }
-    }
+    },
+    events: [
+        defineEvent("up", {
+            template: {
+                arg1: 0,
+                arg2: false
+            },
+            bubbleable: true
+        }),
+        defineEvent("down", {
+            template: {
+                arg3: "sb",
+                arg4: Symbol()
+            },
+            bubbleable: true
+        })
+    ]
 }, (props) => {
     const doubled = sync(() => props.value.get() * 2, [props.value]); //computed
     return tree("div")

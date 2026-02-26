@@ -18,6 +18,7 @@ export type HostTree<T extends HTMLElement = HTMLElement> = {
     )[]): HostTree<T>;
     use(styleSet: StyleSet | Wrapper<StyleSet>): HostTree<T>;
     on<E extends keyof HTMLElementEventMap>(key: E, handler: (data: HTMLElementEventMap[E]) => void, options?: AddEventListenerOptions): HostTree<T>;
+    on(key: string, handler: (...args: unknown[]) => unknown): HostTree<T>;
 };
 
 export function tree<E extends keyof HTMLElementTagNameMap>(data: E | Node) {

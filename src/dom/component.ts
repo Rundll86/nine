@@ -5,12 +5,23 @@ import { Wrapper } from "./reactive";
 import { SlotInput, SlotOutput, pipeExtract } from "./slot";
 import { BrokenRendererError } from "@/exceptions";
 import { appendFlag, COMPONENT_INSTANCE, HOST_TREE, matchFlag } from "@/constants/flags";
+import { EventDescriptor } from "./event";
 
-export interface ComponentRenderEntry<P extends ComponentPropertyStore> {
-    (props?: ComponentPropertyInputDict<P>, slot?: SlotInput): ComponentInstance;
+export interface ComponentRenderEntry<P extends ComponentPropertyStore, E extends ComponentEventStore> {
+    (props?: ComponentPropertyInputDict<P>, slot?: SlotInput): ComponentInstance<E>;
 }
-export type Component<P extends ComponentPropertyStore> =
-    ComponentRenderEntry<P> & ComponentOption<P>;
+export interface ComponentInternalRender<P extends ComponentPropertyStore, E extends ComponentEventStore> {
+    (
+        options: ComponentPropertyOutputDict<P>,
+        slot: SlotOutput,
+        emit: <D extends E[number], K extends D["name"]>(
+            key: K,
+            data: D extends infer R extends EventDescriptor<unknown, string> ? R["name"] extends K ? R["template"] : never : never
+        ) => void
+    ): SourceTree;
+}
+export type Component<P extends ComponentPropertyStore, E extends ComponentEventStore> =
+    ComponentRenderEntry<P, E> & ComponentOption<P, E>;
 export interface ComponentPropertyDescriptor<I = unknown, O = unknown, R extends boolean = boolean> {
     validate?: (data: I) => boolean;
     transform: (data: I) => O;
@@ -19,6 +30,7 @@ export interface ComponentPropertyDescriptor<I = unknown, O = unknown, R extends
     downloadable?: boolean;
     uploadable?: boolean;
 }
+export type ComponentEventStore = EventDescriptor<unknown, string>[];
 export type ComponentPropertyStore = Record<string, ComponentPropertyDescriptor>;
 export type ComponentPropertyInputDict<P extends ComponentPropertyStore> = {
     [K in keyof P as P[K]["required"] extends true ? K : never]:
@@ -34,11 +46,16 @@ export type ComponentPropertyOutputDict<P extends ComponentPropertyStore> = {
     P[K] extends ComponentPropertyDescriptor<unknown, infer R>
     ? Wrapper<R> : never;
 };
-export interface ComponentOption<P extends ComponentPropertyStore> {
+export interface ComponentOption<P extends ComponentPropertyStore, E extends ComponentEventStore> {
     props?: P;
+    events?: E;
 }
-export type ComponentInstance = {
+export type ComponentInstance<E extends ComponentEventStore = ComponentEventStore> = {
     mount(to: string | HTMLElement): void;
+    on<D extends E[number], K extends D["name"]>(
+        key: K,
+        data: (data: D extends infer R extends EventDescriptor<unknown, string> ? R["name"] extends K ? R["template"] : never : never) => void
+    ): ComponentInstance<E>;
     $: HostTree;
 };
 export type SourceTree =
@@ -71,11 +88,12 @@ export function $<T>(data: Wrapper<T>) {
     return data as unknown as Wrapper<SourceTree>;
 }
 export function createComponent<
-    P extends ComponentPropertyStore
+    P extends ComponentPropertyStore,
+    E extends EventDescriptor<unknown, string>
 >(
-    options: ComponentOption<P>,
-    internalRenderer: (options: ComponentPropertyOutputDict<P>, slot: SlotOutput) => SourceTree
-): Component<P> {
+    options: ComponentOption<P, E[]>,
+    internalRenderer: ComponentInternalRender<P, E[]>
+): Component<P, E[]> {
     validateStore(options.props ?? {});
     const propStore = Object.fromEntries(
         Object
@@ -86,7 +104,15 @@ export function createComponent<
             ])
     ) as P;
     const entryRenderer = (props?: ComponentPropertyInputDict<P>, slot?: SlotInput) => {
-        const nodeTree = internalRenderer(hostdown(props, propStore), pipeExtract(slot));
+        const nodeTree = internalRenderer(hostdown(props, propStore), pipeExtract(slot), (key, data) => {
+            const targetEvent = options.events?.find(e => e.name === key);
+            if (!targetEvent) throw new TypeError(`No events named ${key} to emit.`);
+            result.element.dispatchEvent(new CustomEvent(key, {
+                detail: data,
+                bubbles: targetEvent.bubbleable,
+                cancelable: false
+            }));
+        });
         const result = render(nodeTree);
         return appendFlag({
             mount(to: string | HTMLElement) {
@@ -95,10 +121,15 @@ export function createComponent<
                     target.appendChild(result.element);
                 }
             },
+            on(key: string, handler: (data: unknown) => void) {
+                result.on(key, event => event instanceof CustomEvent ? handler(event.detail) : null);
+                return this;
+            },
             $: result
         }, COMPONENT_INSTANCE);
     };
     return Object.assign(entryRenderer, {
-        props: propStore
-    } satisfies ComponentOption<P>);
+        props: propStore,
+        events: options.events
+    } as Component<P, E[]>);
 }
