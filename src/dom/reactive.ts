@@ -5,7 +5,7 @@ export const wrapperSymbol = Symbol("WrapperFlag");
 export type Wrapper<T> = {
     get(): T;
     set(newData: T): void;
-    emitEvent(newData: T, oldData: T): void;
+    emitEvent(newData: T): void;
     updateOnly(): void;
     event: EventSubcriber<[T, T]>;
 } & { [K in typeof wrapperSymbol]: true; };
@@ -23,7 +23,7 @@ export function wrap<T>(initialData: T, wrapperOptions?: Partial<Wrapper<T>>): W
                             if (Array.isArray(oldData)) {
                                 oldData = [...oldData] as T;
                                 const result = originalMethod.call(target, ...args);
-                                wrapper.emitEvent(wrapper.get(), oldData);
+                                wrapper.emitEvent(wrapper.get());
                                 return result;
                             }
                         };
@@ -39,7 +39,7 @@ export function wrap<T>(initialData: T, wrapperOptions?: Partial<Wrapper<T>>): W
                     if (Array.isArray(oldData)) {
                         oldData = [...oldData] as T;
                         const result = Reflect.set(target, p, newValue, receiver);
-                        wrapper.emitEvent(wrapper.get(), oldData);
+                        wrapper.emitEvent(wrapper.get());
                         return result;
                     }
                 }
@@ -63,14 +63,14 @@ export function wrap<T>(initialData: T, wrapperOptions?: Partial<Wrapper<T>>): W
                 } else {
                     currentData = newData;
                 };
-                this.emitEvent(newData, oldData);
+                this.emitEvent(newData);
             }
         },
-        emitEvent(newData, oldData) {
-            event.emit(newData, oldData);
+        emitEvent(newData) {
+            event.emit(newData, currentData);
         },
         updateOnly() {
-            this.emitEvent(this.get(), this.get());
+            this.emitEvent(this.get());
         },
         event,
         [wrapperSymbol]: true

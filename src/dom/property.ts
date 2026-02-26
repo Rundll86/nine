@@ -34,13 +34,19 @@ export function composeDict<T extends ComponentPropertyStore>(input?: ComponentP
     const result: Record<string, unknown> = {};
     for (const propertyKey in store) {
         const descriptor = normalizePropertyDescriptor(store[propertyKey]);
-        if (!Object.hasOwn(input, propertyKey)) {
-            if (descriptor.required) {
-                throw new MissingFieldError(`Missing a required property ${propertyKey}.`);
+        const setValue = (newValue: unknown) => {
+            if (isWrapper(result[propertyKey])) {
+                result[propertyKey].set(newValue);
+            } else {
+                const wrapper = wrap(newValue);
+                result[propertyKey] = wrapper;
+                wrapper.event.subcribe((newData) => {
+                    if (!descriptor.uploadable) throw new AccessError(`Property ${propertyKey} isn't uploadable but being set.`);
+                    if (!isWrapper(input[propertyKey])) return;
+                    input[propertyKey].set(newData);
+                });
             }
-            result[propertyKey] = descriptor.shadow;
-            continue;
-        }
+        };
         const update = (inputValue: unknown, firstSet: boolean) => {
             if (!firstSet && !descriptor.downloadable) {
                 console.warn(`Property ${propertyKey} isn't downloadable but being emitted.`);
@@ -49,24 +55,15 @@ export function composeDict<T extends ComponentPropertyStore>(input?: ComponentP
             if (!descriptor.validate(inputValue)) {
                 throw new ValidationFailed(`The input value of ${propertyKey} can't pass the validation.`);
             }
-            const transformed = descriptor.transform(inputValue)
-            if (isWrapper(result[propertyKey])) {
-                result[propertyKey].set(transformed);
-            } else {
-                const wrapper = wrap(transformed);
-                result[propertyKey] = wrapper;
-                wrapper.event.subcribe((newData) => {
-                    if (!descriptor.uploadable) {
-                        throw new AccessError(`Property ${propertyKey} isn't uploadable but being set.`);
-                    }
-                    if (!isWrapper(input[propertyKey])) {
-                        console.warn(`Can't upload to the upstream of ${propertyKey}.`);
-                        return;
-                    }
-                    input[propertyKey].set(newData);
-                });
-            }
+            setValue(descriptor.transform(inputValue));
         };
+        if (!Object.hasOwn(input, propertyKey)) {
+            if (descriptor.required) {
+                throw new MissingFieldError(`Missing a required property ${propertyKey}.`);
+            }
+            setValue(descriptor.shadow);
+            continue;
+        }
         if (isWrapper(input[propertyKey])) {
             input[propertyKey].event.subcribe(e => update(e, false));
             update(input[propertyKey].get(), true);
@@ -74,5 +71,6 @@ export function composeDict<T extends ComponentPropertyStore>(input?: ComponentP
             update(input[propertyKey], true);
         }
     }
+    console.log(result);
     return result as ComponentPropertyOutputDict<T>;
 }
