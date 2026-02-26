@@ -1,8 +1,9 @@
 import { EmptyValue } from "@/util/types";
-import { TreeContext, tree } from "./tree";
+import { TreeContext, isTreeContext, tree } from "./tree";
 import { hostdown, normalizePropertyDescriptor, validateStore } from "./property";
 import { Wrapper } from "./reactive";
 import { SlotInput, SlotOutput, pipeExtract } from "./slot";
+import { BrokenRendererError } from "@/exceptions";
 
 export interface ComponentRenderEntry<P extends ComponentPropertyStore> {
     (props?: ComponentPropertyInputDict<P>, slot?: SlotInput): RenderResult;
@@ -44,20 +45,23 @@ export type TreeResult =
     TreeContext |
     string |
     number |
+    boolean |
     EmptyValue |
     RenderResult;
 export function render(nodeTree: TreeResult) {
     let result: TreeContext;
     if (nodeTree instanceof HTMLElement) {
         result = tree(nodeTree);
-    } else if (typeof nodeTree === "string" || typeof nodeTree === "number") {
+    } else if (typeof nodeTree === "string" || typeof nodeTree === "number" || typeof nodeTree === "boolean") {
         result = tree(new Text(String(nodeTree)));
     } else if (isRenderResult(nodeTree)) {
         result = nodeTree.$;
-    } else if (!nodeTree) {
+    } else if (nodeTree === null || nodeTree === undefined) {
         result = tree(new Comment("Empty tree context"));
-    } else {
+    } else if (isTreeContext(nodeTree)) {
         result = nodeTree;
+    } else {
+        throw new BrokenRendererError(`Failed to render ${nodeTree} into a Node.`);
     }
     return result;
 }

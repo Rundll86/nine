@@ -17,7 +17,11 @@ export type TreeContext<T extends HTMLElement = HTMLElement> = {
     )[]): TreeContext<T>;
     use(styleSet: StyleSet | Wrapper<StyleSet>): TreeContext<T>;
     on<E extends keyof HTMLElementEventMap>(key: E, handler: (data: HTMLElementEventMap[E]) => void, options?: AddEventListenerOptions): TreeContext<T>;
-};
+} & { [K in typeof treeContextSymbol]: true; };
+export const treeContextSymbol = Symbol("TreeContextFlag");
+export function isTreeContext<T extends HTMLElement>(data: unknown): data is TreeContext<T> {
+    return !!data && Object.hasOwn(data, treeContextSymbol) && data[treeContextSymbol] === true;
+}
 export function tree<E extends keyof HTMLElementTagNameMap>(data: E | Node) {
     const element: Node = typeof data === "string" ? document.createElement(data) : data;
     const context: TreeContext<HTMLElementTagNameMap[E]> = new Proxy({
@@ -74,6 +78,7 @@ export function tree<E extends keyof HTMLElementTagNameMap>(data: E | Node) {
             }
             return context;
         },
+        [treeContextSymbol]: true
     } as TreeContext<HTMLElementTagNameMap[E]>, {
         get<P extends keyof Node>(target: Record<string, unknown>, p: P, receiver: unknown) {
             if (Reflect.has(target, p)) {
