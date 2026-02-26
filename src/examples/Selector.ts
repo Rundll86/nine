@@ -2,6 +2,7 @@ import { $, createComponent, defineEvent, rawProperty, styleSet, sync, tree, whe
 
 const option = styleSet().backgroundColor("blue").color("white");
 const flexdown = styleSet().display("flex").flexDirection("column");
+
 export default createComponent({
     props: {
         items: {
