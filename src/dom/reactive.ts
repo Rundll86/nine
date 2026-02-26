@@ -1,13 +1,14 @@
 import { EventSubcriber } from "@/channel/event-subcriber";
 import { SourceTree } from "./component";
-import { matchFlag, WRAPPER } from "@/constants/flags";
+import { appendFlag, matchFlag, WRAPPER } from "@/constants/flags";
 
 export type Wrapper<T> = {
     get(): T;
     set(newData: T): void;
     updateOnly(): void;
     event: EventSubcriber<[T, T]>;
-} & { [K in typeof WRAPPER]: true; };
+};
+
 export function wrap<T>(initialData: T, wrapperOptions?: Partial<Wrapper<T>>): Wrapper<T> {
     const arrayActions = ["push", "pop", "shift", "unshift", "splice", "sort", "reverse"];
     const patch = (data: T) => {
@@ -51,7 +52,7 @@ export function wrap<T>(initialData: T, wrapperOptions?: Partial<Wrapper<T>>): W
     const event = new EventSubcriber<[T, T]>();
     let oldRevoke: (() => void) | null = null;
     let currentData = patch(initialData);
-    const wrapper: Wrapper<T> = {
+    const wrapper: Wrapper<T> = appendFlag({
         get() { return currentData; },
         set(newData) {
             if (currentData !== newData) {
@@ -69,9 +70,8 @@ export function wrap<T>(initialData: T, wrapperOptions?: Partial<Wrapper<T>>): W
         updateOnly() {
             this.event.emit(this.get(), this.get());
         },
-        event,
-        [WRAPPER]: true
-    };
+        event
+    }, WRAPPER);
     return { ...wrapper, ...wrapperOptions ?? {} };
 }
 export function sync<R>(effectRenderer: () => R, dependencies: unknown[] = []): Wrapper<R> {

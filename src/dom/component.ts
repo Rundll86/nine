@@ -4,7 +4,7 @@ import { hostdown, normalizePropertyDescriptor, validateStore } from "./property
 import { Wrapper } from "./reactive";
 import { SlotInput, SlotOutput, pipeExtract } from "./slot";
 import { BrokenRendererError } from "@/exceptions";
-import { COMPONENT_INSTANCE, HOST_TREE, matchFlag } from "@/constants/flags";
+import { appendFlag, COMPONENT_INSTANCE, HOST_TREE, matchFlag } from "@/constants/flags";
 
 export interface ComponentRenderEntry<P extends ComponentPropertyStore> {
     (props?: ComponentPropertyInputDict<P>, slot?: SlotInput): ComponentInstance;
@@ -40,7 +40,7 @@ export interface ComponentOption<P extends ComponentPropertyStore> {
 export type ComponentInstance = {
     mount(to: string | HTMLElement): void;
     $: HostTree;
-} & { [K in typeof COMPONENT_INSTANCE]: true; };
+};
 export type SourceTree =
     HTMLElement |
     HostTree |
@@ -88,16 +88,15 @@ export function createComponent<
     const entryRenderer = (props?: ComponentPropertyInputDict<P>, slot?: SlotInput) => {
         const nodeTree = internalRenderer(hostdown(props, propStore), pipeExtract(slot));
         const result = render(nodeTree);
-        return {
+        return appendFlag({
             mount(to: string | HTMLElement) {
                 const targets = typeof to === "string" ? [...document.querySelectorAll<HTMLElement>(to)] : [to];
                 for (const target of targets) {
                     target.appendChild(result.element);
                 }
             },
-            $: result,
-            [COMPONENT_INSTANCE]: true as const
-        };
+            $: result
+        }, COMPONENT_INSTANCE);
     };
     return Object.assign(entryRenderer, {
         props: propStore

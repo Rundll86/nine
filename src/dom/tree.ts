@@ -3,7 +3,7 @@ import { render, SourceTree } from "./component";
 import { Wrapper } from "./reactive";
 import { StyleSet } from "./style";
 import { putIn } from "@/util/array";
-import { HOST_TREE, matchFlag, WRAPPER } from "@/constants/flags";
+import { appendFlag, HOST_TREE, matchFlag, WRAPPER } from "@/constants/flags";
 
 export type HostTree<T extends HTMLElement = HTMLElement> = {
     [K in keyof T as T[K] extends (...args: unknown[]) => unknown ? never : K]: (data: T[K] | Wrapper<T[K]>) => HostTree<T>;
@@ -18,11 +18,11 @@ export type HostTree<T extends HTMLElement = HTMLElement> = {
     )[]): HostTree<T>;
     use(styleSet: StyleSet | Wrapper<StyleSet>): HostTree<T>;
     on<E extends keyof HTMLElementEventMap>(key: E, handler: (data: HTMLElementEventMap[E]) => void, options?: AddEventListenerOptions): HostTree<T>;
-} & { [K in typeof HOST_TREE]: true; };
+};
 
 export function tree<E extends keyof HTMLElementTagNameMap>(data: E | Node) {
     const element: Node = typeof data === "string" ? document.createElement(data) : data;
-    const context: HostTree<HTMLElementTagNameMap[E]> = new Proxy({
+    const context: HostTree<HTMLElementTagNameMap[E]> = new Proxy(appendFlag({
         element,
         append(...children: (SourceTree | SourceTree[] | Wrapper<SourceTree | SourceTree[]>)[]) {
             for (const child of children) {
@@ -76,8 +76,7 @@ export function tree<E extends keyof HTMLElementTagNameMap>(data: E | Node) {
             }
             return context;
         },
-        [HOST_TREE]: true
-    } as HostTree<HTMLElementTagNameMap[E]>, {
+    } as HostTree<HTMLElementTagNameMap[E]>, HOST_TREE), {
         get<P extends keyof Node>(target: Record<string, unknown>, p: P, receiver: unknown) {
             if (Reflect.has(target, p)) {
                 return Reflect.get(target, p, receiver);
