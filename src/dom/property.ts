@@ -40,9 +40,9 @@ export function hostdown<T extends ComponentPropertyStore>(upstream?: ComponentP
                 const wrapper = wrap(newValue);
                 downstream[propertyKey] = wrapper;
                 wrapper.event.subcribe((newData) => {
+                    if (!isWrapper(upstream[propertyKey]) || !isWrapper(downstream[propertyKey])) return;
+                    if (downstream[propertyKey].get() === upstream[propertyKey].get()) return;
                     if (!descriptor.uploadable) throw new AccessError(`Property ${propertyKey} isn't uploadable but being set.`);
-                    if (!isWrapper(upstream[propertyKey])) return;
-                    if (downstream[propertyKey] === upstream[propertyKey]) return;
                     upstream[propertyKey].set(newData);
                 });
             }
@@ -71,6 +71,5 @@ export function hostdown<T extends ComponentPropertyStore>(upstream?: ComponentP
             update(upstream[propertyKey], true);
         }
     }
-    console.log(downstream);
     return downstream as ComponentPropertyOutputDict<T>;
 }
