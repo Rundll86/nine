@@ -61,14 +61,16 @@ export type ComponentInstance<E extends ComponentEventStore = ComponentEventStor
     ): ComponentInstance<E>;
     $: HostTree;
 };
-export type SourceTree =
-    HTMLElement |
-    HostTree |
-    string |
-    number |
-    boolean |
-    EmptyValue |
-    ComponentInstance;
+export type SourceTree = [
+    HTMLElement,
+    HostTree,
+    string,
+    number,
+    boolean,
+    EmptyValue,
+    ComponentInstance,
+][number];
+
 export function render(nodeTree: SourceTree) {
     let result: HostTree;
     if (nodeTree instanceof HTMLElement) {
@@ -86,7 +88,6 @@ export function render(nodeTree: SourceTree) {
     }
     return result;
 }
-
 export function $<T>(data: Wrapper<T>) {
     return data as unknown as Wrapper<SourceTree>;
 }
