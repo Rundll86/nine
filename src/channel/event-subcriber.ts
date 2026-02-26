@@ -7,6 +7,7 @@ interface Subcriber<T extends unknown[]> {
 }
 export class EventSubcriber<T extends unknown[]> {
     private subcribers: Subcriber<T>[] = [];
+    private emitting: boolean = false;
 
     subcribe(callback: SubcriberCallback<T>, once = false) {
         this.subcribers.push({
@@ -14,14 +15,12 @@ export class EventSubcriber<T extends unknown[]> {
             once,
         });
     }
-    async once() {
-        return new Promise<{ data: T }>((resolve) => {
-            this.subcribe((...data) => resolve({ data }), true);
-        });
-    }
     emit(...data: T) {
+        if (this.emitting) return;
+        this.emitting = true;
         for (const subcriber of this.subcribers) {
             subcriber.callback(...data);
         }
+        this.emitting = false;
     }
 }
