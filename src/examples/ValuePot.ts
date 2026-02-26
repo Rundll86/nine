@@ -8,9 +8,11 @@ export default createComponent({}, () => {
         .append(
             "v1:", $(v1), "v2:", $(v2),
             AddExpression({ v1, v2 }),
-            tree("button").textContent("v1 +1").on("click", () => v1.set(v1.get() + 1)),
-            tree("button").textContent("v2 +1").on("click", () => v2.set(v2.get() + 1)),
-            tree("button").textContent("v1 -1").on("click", () => v1.set(v1.get() - 1)),
-            tree("button").textContent("v2 -1").on("click", () => v2.set(v2.get() - 1)),
+            tree("button")
+                .textContent("上游 v1 +1")
+                .on("click", () => v1.set(v1.get() + 1)),
+            tree("button")
+                .textContent("上游 v2 +1")
+                .on("click", () => v2.set(v2.get() + 1)),
         );
 });
