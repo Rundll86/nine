@@ -3,10 +3,13 @@ import { AccessError, ConflictionError, MissingFieldError, ValidationFailed } fr
 import { matchFlag, WRAPPER } from "@/constants/flags";
 import { wrap } from "./reactive";
 
+export function rawProperty<T>(): (x: unknown) => T {
+    return (x: unknown) => x as T;
+}
 export function normalizePropertyDescriptor
     <I, O, R extends boolean>(
-    descriptor: ComponentPropertyDescriptor<I, O, R>
-): Required<ComponentPropertyDescriptor<I, O, R>> {
+        descriptor: ComponentPropertyDescriptor<I, O, R>
+    ): Required<ComponentPropertyDescriptor<I, O, R>> {
     return Object.assign({
         validate: () => true,
         transform: x => x,

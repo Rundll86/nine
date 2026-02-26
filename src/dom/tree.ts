@@ -32,7 +32,7 @@ export function tree<E extends keyof HTMLElementTagNameMap>(data: E | Node) {
                     const baseAnchor = new Comment("Tree anchor");
                     element.appendChild(baseAnchor);
                     const update = (newTrees: SourceTree[] | SourceTree) => {
-                        const normalizedTrees = [...(Array.isArray(newTrees) ? newTrees : [newTrees])];
+                        const normalizedTrees = [...(Array.isArray(newTrees) ? newTrees : [newTrees])].reverse();
                         const newChildren: HostTree[] = [];
                         for (const newTree of normalizedTrees) {
                             const child = render(newTree);

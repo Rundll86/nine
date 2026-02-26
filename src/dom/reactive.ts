@@ -58,8 +58,8 @@ export function wrap<T>(initialData: T, wrapperOptions?: Partial<Wrapper<T>>): W
             if (currentData !== newData) {
                 let oldData = currentData;
                 if (Array.isArray(oldData) && oldRevoke) {
-                    oldRevoke();
                     oldData = [...oldData] as T;
+                    oldRevoke();
                     currentData = patch(newData);
                 } else {
                     currentData = newData;
