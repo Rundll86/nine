@@ -28,22 +28,22 @@ export function validateStore(store: ComponentPropertyStore) {
         }
     }
 }
-export function composeDict<T extends ComponentPropertyStore>(input?: ComponentPropertyInputDict<T>, store?: T) {
-    if (!input) input = {} as ComponentPropertyInputDict<T>;
-    const output: Record<string, unknown> = {};
+export function hostdown<T extends ComponentPropertyStore>(upstream?: ComponentPropertyInputDict<T>, store?: T) {
+    if (!upstream) upstream = {} as ComponentPropertyInputDict<T>;
+    const downstream: Record<string, unknown> = {};
     for (const propertyKey in store) {
         const descriptor = normalizePropertyDescriptor(store[propertyKey]);
         const setValue = (newValue: unknown) => {
-            if (isWrapper(output[propertyKey])) {
-                output[propertyKey].set(newValue);
+            if (isWrapper(downstream[propertyKey])) {
+                downstream[propertyKey].set(newValue);
             } else {
                 const wrapper = wrap(newValue);
-                output[propertyKey] = wrapper;
+                downstream[propertyKey] = wrapper;
                 wrapper.event.subcribe((newData) => {
                     if (!descriptor.uploadable) throw new AccessError(`Property ${propertyKey} isn't uploadable but being set.`);
-                    if (!isWrapper(input[propertyKey])) return;
-                    if (output[propertyKey] === input[propertyKey]) return;
-                    input[propertyKey].set(newData);
+                    if (!isWrapper(upstream[propertyKey])) return;
+                    if (downstream[propertyKey] === upstream[propertyKey]) return;
+                    upstream[propertyKey].set(newData);
                 });
             }
         };
@@ -57,20 +57,20 @@ export function composeDict<T extends ComponentPropertyStore>(input?: ComponentP
             }
             setValue(descriptor.transform(inputValue));
         };
-        if (!Object.hasOwn(input, propertyKey)) {
+        if (!Object.hasOwn(upstream, propertyKey)) {
             if (descriptor.required) {
                 throw new MissingFieldError(`Missing a required property ${propertyKey}.`);
             }
             setValue(descriptor.shadow);
             continue;
         }
-        if (isWrapper(input[propertyKey])) {
-            input[propertyKey].event.subcribe(e => update(e, false));
-            update(input[propertyKey].get(), true);
+        if (isWrapper(upstream[propertyKey])) {
+            upstream[propertyKey].event.subcribe(e => update(e, false));
+            update(upstream[propertyKey].get(), true);
         } else {
-            update(input[propertyKey], true);
+            update(upstream[propertyKey], true);
         }
     }
-    console.log(output);
-    return output as ComponentPropertyOutputDict<T>;
+    console.log(downstream);
+    return downstream as ComponentPropertyOutputDict<T>;
 }

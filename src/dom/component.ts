@@ -1,6 +1,6 @@
 import { EmptyValue } from "@/util/types";
 import { TreeContext, tree } from "./tree";
-import { composeDict, normalizePropertyDescriptor, validateStore } from "./property";
+import { hostdown, normalizePropertyDescriptor, validateStore } from "./property";
 import { Wrapper } from "./reactive";
 import { SlotInput, SlotOutput, pipeExtract } from "./slot";
 
@@ -84,7 +84,7 @@ export function createComponent<
             ])
     ) as P;
     const entryRenderer = (props?: ComponentPropertyInputDict<P>, slot?: SlotInput) => {
-        const nodeTree = internalRenderer(composeDict(props, propStore), pipeExtract(slot));
+        const nodeTree = internalRenderer(hostdown(props, propStore), pipeExtract(slot));
         const result = render(nodeTree);
         return {
             mount(to: string | HTMLElement) {
