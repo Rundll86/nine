@@ -4,8 +4,8 @@ import { isWrapper, wrap } from "./reactive";
 
 export function normalizePropertyDescriptor
     <I, O, R extends boolean>(
-    descriptor: ComponentPropertyDescriptor<I, O, R>
-): Required<ComponentPropertyDescriptor<I, O, R>> {
+        descriptor: ComponentPropertyDescriptor<I, O, R>
+    ): Required<ComponentPropertyDescriptor<I, O, R>> {
     return Object.assign({
         validate: () => true,
         transform: x => x,
@@ -30,18 +30,19 @@ export function validateStore(store: ComponentPropertyStore) {
 }
 export function composeDict<T extends ComponentPropertyStore>(input?: ComponentPropertyInputDict<T>, store?: T) {
     if (!input) input = {} as ComponentPropertyInputDict<T>;
-    const result: Record<string, unknown> = {};
+    const output: Record<string, unknown> = {};
     for (const propertyKey in store) {
         const descriptor = normalizePropertyDescriptor(store[propertyKey]);
         const setValue = (newValue: unknown) => {
-            if (isWrapper(result[propertyKey])) {
-                result[propertyKey].set(newValue);
+            if (isWrapper(output[propertyKey])) {
+                output[propertyKey].set(newValue);
             } else {
                 const wrapper = wrap(newValue);
-                result[propertyKey] = wrapper;
+                output[propertyKey] = wrapper;
                 wrapper.event.subcribe((newData) => {
                     if (!descriptor.uploadable) throw new AccessError(`Property ${propertyKey} isn't uploadable but being set.`);
                     if (!isWrapper(input[propertyKey])) return;
+                    if (output[propertyKey] === input[propertyKey]) return;
                     input[propertyKey].set(newData);
                 });
             }
@@ -70,6 +71,6 @@ export function composeDict<T extends ComponentPropertyStore>(input?: ComponentP
             update(input[propertyKey], true);
         }
     }
-    console.log(result);
-    return result as ComponentPropertyOutputDict<T>;
+    console.log(output);
+    return output as ComponentPropertyOutputDict<T>;
 }
