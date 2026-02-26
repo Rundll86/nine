@@ -1,10 +1,10 @@
-import { ComponentPropertyDescriptor, ComponentPropertyInputDict, ComponentPropertyOutputDict, ComponentPropertyStore } from "./component";
+import { ComponentPropertyDescriptor, ComponentPropertyInputDict, ComponentPropertyOutputDict, ComponentPropertyStore, PropertyTransformer } from "./component";
 import { AccessError, ConflictionError, MissingFieldError, ValidationFailed } from "@/exceptions";
 import { matchFlag, WRAPPER } from "@/constants/flags";
 import { wrap } from "./reactive";
 
-export function rawProperty<T>(): (x: unknown) => T {
-    return (x: unknown) => x as T;
+export function rawProperty<T>(): PropertyTransformer<unknown, T> {
+    return (x) => x as T;
 }
 export function normalizePropertyDescriptor
     <I, O, R extends boolean>(

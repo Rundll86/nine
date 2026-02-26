@@ -22,9 +22,12 @@ export interface ComponentInternalRender<P extends ComponentPropertyStore, E ext
 }
 export type Component<P extends ComponentPropertyStore, E extends ComponentEventStore> =
     ComponentRenderEntry<P, E> & ComponentOption<P, E>;
+export interface PropertyTransformer<I, O> {
+    (data: I): O;
+}
 export interface ComponentPropertyDescriptor<I = unknown, O = unknown, R extends boolean = boolean> {
     validate?: (data: I) => boolean;
-    transform: (data: I) => O;
+    transform: PropertyTransformer<I, O>;
     shadow?: O;
     required?: R;
     downloadable?: boolean;
