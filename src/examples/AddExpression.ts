@@ -1,4 +1,4 @@
-import { $, createComponent, sync, tree, TreeResult } from "@";
+import { $, createComponent, sync, tree, SourceTree } from "@";
 
 function isNumeric(value: unknown) {
     if (value === null || value === undefined) return false;
@@ -28,7 +28,7 @@ export default createComponent({
 }, (props) =>
     tree("div").append(
         $(props.v1), "+", $(props.v2), "=",
-        sync<TreeResult>(() => props.v1.get() + props.v2.get(), [props.v1, props.v2]),
+        sync<SourceTree>(() => props.v1.get() + props.v2.get(), [props.v1, props.v2]),
         tree("button")
             .textContent("下游 v1 -1")
             .on("click", () => props.v1.set(props.v1.get() - 1)),

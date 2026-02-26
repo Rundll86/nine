@@ -1,13 +1,13 @@
 import { EventSubcriber } from "@/channel/event-subcriber";
-import { TreeResult } from "./component";
+import { SourceTree } from "./component";
+import { WRAPPER } from "@/constants/flags";
 
-export const wrapperSymbol = Symbol("WrapperFlag");
 export type Wrapper<T> = {
     get(): T;
     set(newData: T): void;
     updateOnly(): void;
     event: EventSubcriber<[T, T]>;
-} & { [K in typeof wrapperSymbol]: true; };
+} & { [K in typeof WRAPPER]: true; };
 export function wrap<T>(initialData: T, wrapperOptions?: Partial<Wrapper<T>>): Wrapper<T> {
     const arrayActions = ["push", "pop", "shift", "unshift", "splice", "sort", "reverse"];
     const patch = (data: T) => {
@@ -70,7 +70,7 @@ export function wrap<T>(initialData: T, wrapperOptions?: Partial<Wrapper<T>>): W
             this.event.emit(this.get(), this.get());
         },
         event,
-        [wrapperSymbol]: true
+        [WRAPPER]: true
     };
     return { ...wrapper, ...wrapperOptions ?? {} };
 }
@@ -90,7 +90,7 @@ export function sync<R>(effectRenderer: () => R, dependencies: unknown[] = []): 
     }
     return internalWrapper;
 }
-export function when(condition: Wrapper<boolean> | (() => boolean), tree: () => TreeResult, dependencies: unknown[] = []) {
+export function when(condition: Wrapper<boolean> | (() => boolean), tree: () => SourceTree, dependencies: unknown[] = []) {
     return sync(() => {
         let result: boolean;
         if (typeof condition === "function") {
@@ -102,5 +102,5 @@ export function when(condition: Wrapper<boolean> | (() => boolean), tree: () => 
     }, [...dependencies, ...(isWrapper(condition) ? [condition] : [])]);
 }
 export function isWrapper<T>(data: unknown): data is Wrapper<T> {
-    return !!data && Object.hasOwn(data, wrapperSymbol) && data[wrapperSymbol] === true;
+    return !!data && Object.hasOwn(data, WRAPPER) && data[WRAPPER] === true;
 }

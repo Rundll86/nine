@@ -1,12 +1,13 @@
 import { EmptyValue } from "@/util/types";
-import { TreeContext, isTreeContext, tree } from "./tree";
+import { HostTree, tree } from "./tree";
 import { hostdown, normalizePropertyDescriptor, validateStore } from "./property";
 import { Wrapper } from "./reactive";
 import { SlotInput, SlotOutput, pipeExtract } from "./slot";
 import { BrokenRendererError } from "@/exceptions";
+import { COMPONENT_INSTANCE, HOST_TREE, matchFlag } from "@/constants/flags";
 
 export interface ComponentRenderEntry<P extends ComponentPropertyStore> {
-    (props?: ComponentPropertyInputDict<P>, slot?: SlotInput): RenderResult;
+    (props?: ComponentPropertyInputDict<P>, slot?: SlotInput): ComponentInstance;
 }
 export type Component<P extends ComponentPropertyStore> =
     ComponentRenderEntry<P> & ComponentOption<P>;
@@ -36,47 +37,44 @@ export type ComponentPropertyOutputDict<P extends ComponentPropertyStore> = {
 export interface ComponentOption<P extends ComponentPropertyStore> {
     props?: P;
 }
-export type RenderResult = {
+export type ComponentInstance = {
     mount(to: string | HTMLElement): void;
-    $: TreeContext;
-} & { [K in typeof renderResultSymbol]: true; };
-export type TreeResult =
+    $: HostTree;
+} & { [K in typeof COMPONENT_INSTANCE]: true; };
+export type SourceTree =
     HTMLElement |
-    TreeContext |
+    HostTree |
     string |
     number |
     boolean |
     EmptyValue |
-    RenderResult;
-export function render(nodeTree: TreeResult) {
-    let result: TreeContext;
+    ComponentInstance;
+export function render(nodeTree: SourceTree) {
+    let result: HostTree;
     if (nodeTree instanceof HTMLElement) {
         result = tree(nodeTree);
     } else if (typeof nodeTree === "string" || typeof nodeTree === "number" || typeof nodeTree === "boolean") {
         result = tree(new Text(String(nodeTree)));
-    } else if (isRenderResult(nodeTree)) {
+    } else if (matchFlag(nodeTree, COMPONENT_INSTANCE)) {
         result = nodeTree.$;
     } else if (nodeTree === null || nodeTree === undefined) {
         result = tree(new Comment("Empty tree context"));
-    } else if (isTreeContext(nodeTree)) {
+    } else if (matchFlag(nodeTree, HOST_TREE)) {
         result = nodeTree;
     } else {
         throw new BrokenRendererError(`Failed to render ${nodeTree} into a Node.`);
     }
     return result;
 }
-export const renderResultSymbol = Symbol("RenderResultFlag");
-export function isRenderResult(data: unknown): data is RenderResult {
-    return !!data && Object.hasOwn(data, renderResultSymbol) && data[renderResultSymbol] === true;
-}
+
 export function $<T>(data: Wrapper<T>) {
-    return data as unknown as Wrapper<TreeResult>;
+    return data as unknown as Wrapper<SourceTree>;
 }
 export function createComponent<
     P extends ComponentPropertyStore
 >(
     options: ComponentOption<P>,
-    internalRenderer: (options: ComponentPropertyOutputDict<P>, slot: SlotOutput) => TreeResult
+    internalRenderer: (options: ComponentPropertyOutputDict<P>, slot: SlotOutput) => SourceTree
 ): Component<P> {
     validateStore(options.props ?? {});
     const propStore = Object.fromEntries(
@@ -98,7 +96,7 @@ export function createComponent<
                 }
             },
             $: result,
-            [renderResultSymbol]: true as const
+            [COMPONENT_INSTANCE]: true as const
         };
     };
     return Object.assign(entryRenderer, {

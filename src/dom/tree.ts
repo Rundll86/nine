@@ -1,40 +1,38 @@
 import { camelToHyphen } from "@/util/char";
-import { render, TreeResult } from "./component";
+import { render, SourceTree } from "./component";
 import { isWrapper, Wrapper } from "./reactive";
 import { StyleSet } from "./style";
 import { putIn } from "@/util/array";
+import { HOST_TREE } from "@/constants/flags";
 
-export type TreeContext<T extends HTMLElement = HTMLElement> = {
-    [K in keyof T as T[K] extends (...args: unknown[]) => unknown ? never : K]: (data: T[K] | Wrapper<T[K]>) => TreeContext<T>;
+export type HostTree<T extends HTMLElement = HTMLElement> = {
+    [K in keyof T as T[K] extends (...args: unknown[]) => unknown ? never : K]: (data: T[K] | Wrapper<T[K]>) => HostTree<T>;
 } & {
     element: T;
     append(...children: (
-        TreeResult |
-        TreeResult[] |
-        Wrapper<TreeResult> |
-        Wrapper<TreeResult[]> |
-        Wrapper<TreeResult | TreeResult[]>
-    )[]): TreeContext<T>;
-    use(styleSet: StyleSet | Wrapper<StyleSet>): TreeContext<T>;
-    on<E extends keyof HTMLElementEventMap>(key: E, handler: (data: HTMLElementEventMap[E]) => void, options?: AddEventListenerOptions): TreeContext<T>;
-} & { [K in typeof treeContextSymbol]: true; };
-export const treeContextSymbol = Symbol("TreeContextFlag");
-export function isTreeContext<T extends HTMLElement>(data: unknown): data is TreeContext<T> {
-    return !!data && Object.hasOwn(data, treeContextSymbol) && data[treeContextSymbol] === true;
-}
+        SourceTree |
+        SourceTree[] |
+        Wrapper<SourceTree> |
+        Wrapper<SourceTree[]> |
+        Wrapper<SourceTree | SourceTree[]>
+    )[]): HostTree<T>;
+    use(styleSet: StyleSet | Wrapper<StyleSet>): HostTree<T>;
+    on<E extends keyof HTMLElementEventMap>(key: E, handler: (data: HTMLElementEventMap[E]) => void, options?: AddEventListenerOptions): HostTree<T>;
+} & { [K in typeof HOST_TREE]: true; };
+
 export function tree<E extends keyof HTMLElementTagNameMap>(data: E | Node) {
     const element: Node = typeof data === "string" ? document.createElement(data) : data;
-    const context: TreeContext<HTMLElementTagNameMap[E]> = new Proxy({
+    const context: HostTree<HTMLElementTagNameMap[E]> = new Proxy({
         element,
-        append(...children: (TreeResult | TreeResult[] | Wrapper<TreeResult | TreeResult[]>)[]) {
+        append(...children: (SourceTree | SourceTree[] | Wrapper<SourceTree | SourceTree[]>)[]) {
             for (const child of children) {
-                if (isWrapper<TreeResult | TreeResult[]>(child)) {
-                    let oldChildren: TreeContext[] = [];
+                if (isWrapper<SourceTree | SourceTree[]>(child)) {
+                    let oldChildren: HostTree[] = [];
                     const baseAnchor = new Comment("Tree anchor");
                     element.appendChild(baseAnchor);
-                    const update = (newTrees: TreeResult[] | TreeResult) => {
+                    const update = (newTrees: SourceTree[] | SourceTree) => {
                         const normalizedTrees = [...(Array.isArray(newTrees) ? newTrees : [newTrees])];
-                        const newChildren: TreeContext[] = [];
+                        const newChildren: HostTree[] = [];
                         for (const newTree of normalizedTrees) {
                             const child = render(newTree);
                             newChildren.push(child);
@@ -78,8 +76,8 @@ export function tree<E extends keyof HTMLElementTagNameMap>(data: E | Node) {
             }
             return context;
         },
-        [treeContextSymbol]: true
-    } as TreeContext<HTMLElementTagNameMap[E]>, {
+        [HOST_TREE]: true
+    } as HostTree<HTMLElementTagNameMap[E]>, {
         get<P extends keyof Node>(target: Record<string, unknown>, p: P, receiver: unknown) {
             if (Reflect.has(target, p)) {
                 return Reflect.get(target, p, receiver);
