@@ -11,7 +11,6 @@
         "allowSyntheticDefaultImports": true,
         "declaration": true,
         "sourceMap": true,
-        "rootDir": "./src",
         "paths": {
             "@asset/*": [
                 "src/nine/src/assets/*"
@@ -27,7 +26,8 @@
         "outDir": "dist"
     },
     "include": [
-        "src/**/*"
+        "src/**/*",
+        "tsup.config.ts"
     ],
     "exclude": [
         "node_modules",

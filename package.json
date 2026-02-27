@@ -20,8 +20,8 @@
         "reactive"
     ],
     "scripts": {
-        "dev": "tsup --watch",
-        "build": "tsup",
+        "dev": "cross-env NODE_ENV=development tsup --watch",
+        "build": "cross-env NODE_ENV=production tsup",
         "lint": "eslint .",
         "lint:fix": "eslint . --fix",
         "check-type": "tsc --noEmit"
@@ -32,6 +32,7 @@
         "@eslint/js": "^10.0.1",
         "@turbowarp/types": "^0.0.14",
         "@vue/runtime-dom": "^3.5.29",
+        "cross-env": "^10.1.0",
         "eslint": "^10.0.2",
         "globals": "^17.3.0",
         "jiti": "^2.6.1",
