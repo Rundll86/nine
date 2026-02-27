@@ -12,7 +12,7 @@ import {
     wrap
 } from "@";
 
-export default createComponent({
+export default createComponent({ //在组件配置中声明插槽
     props: {
         items: {
             transform: rawProperty<string[]>(),
@@ -38,7 +38,8 @@ export default createComponent({
     ],
     slots: [
         defineSlot("title", {
-            template: defineTemplate<string>(),
+            template: defineTemplate<string>(), //插槽作用域的数据类型
+            required: false, //插槽是否必填
         })
     ]
 }, (props, slot, emit) => {
@@ -63,7 +64,7 @@ export default createComponent({
                 .use(styleSet().backgroundColor("red"))
                 .append(
                     tree("div").append($(text)),
-                    slot.title(text)
+                    slot.title(text) //像正常元素一样，把插槽查到想要的位置（参数类型在定义时给出）
                 )
                 .on("click", () => showing.set(!showing.get())),
             when(showing, () =>
