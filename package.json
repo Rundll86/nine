@@ -1,6 +1,6 @@
 {
     "name": "nine-9",
-    "version": "1.5.1",
+    "version": "1.7.0",
     "description": "一个轻量、高性能、类型安全的 Vanilla DOM 响应式 UI 框架。",
     "main": "dist/index.js",
     "types": "dist/index.d.ts",
@@ -20,8 +20,8 @@
         "reactive"
     ],
     "scripts": {
-        "dev": "cross-env NODE_ENV=development tsup --watch",
-        "build": "cross-env NODE_ENV=production tsup",
+        "dev": "tsup --watch --env.NODE_ENV development",
+        "build": "tsup --env.NODE_ENV production",
         "lint": "eslint .",
         "lint:fix": "eslint . --fix",
         "check-type": "tsc --noEmit"

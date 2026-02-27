@@ -1,7 +1,7 @@
 import { defineConfig } from "tsup";
 
 export default defineConfig(options => {
-    const isDevelopment = options.env?.NODE_ENV === 'development';
+    const isDevelopment = options.env?.NODE_ENV === "development";
     console.log(options.env?.NODE_ENV, isDevelopment);
 
     return {
