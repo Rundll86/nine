@@ -6,13 +6,13 @@ import { putIntoArray } from "@/util/array";
 import { attachFlag, HOST_TREE, matchFlag, WRAPPER } from "@/constants/flags";
 import { EventSubcriber } from "@/channel";
 import { SupportedHTMLRawAttributes, SupportedHTMLElements, SupportedEventHandlerMap } from "./element";
-import { KebabToCamel, ObjectToEntryUnion, Valueof } from "@/util/types";
+import { KebabToCamel, ObjectToEntryUnion } from "@/util/types";
 
 export interface HostTreeHooks {
     treeUpdated: [newTrees: HostTree[], oldTrees: HostTree[]];
     attributeUpdated: [attribute: string, newValue: unknown, oldValue: unknown];
     initialized: [rootTree: HostTree];
-    $event: [ObjectToEntryUnion<SupportedEventHandlerMap>, boolean | void];
+    $preventEvent: [ObjectToEntryUnion<SupportedEventHandlerMap>, boolean | void];
 }
 export type HostTreeHookStore = {
     [K in keyof HostTreeHooks as K extends `$${infer R}` ? R : K]:
@@ -50,7 +50,7 @@ export function tree<E extends SupportedHTMLElements>(data: E | Node) {
         treeUpdated: new EventSubcriber(),
         attributeUpdated: new EventSubcriber(),
         initialized: new EventSubcriber(),
-        event: new EventSubcriber()
+        preventEvent: new EventSubcriber()
     };
     const context: HostTree<E> = new Proxy(attachFlag({
         element,
@@ -105,10 +105,10 @@ export function tree<E extends SupportedHTMLElements>(data: E | Node) {
         on<K extends keyof SupportedEventHandlerMap>(key: K, handler: SupportedEventHandlerMap[K], options: AddEventListenerOptions) {
             if (element instanceof EventTarget) {
                 element.addEventListener(key, (e) => {
-                    //@ts-ignore
+                    //@ts-expect-error 运行时这个本来就是配套的，ts推断不出来
                     const emitResult = hooks.event.emit(key, handler);
                     if (emitResult && !emitResult.some(Boolean)) {
-                        //@ts-ignore
+                        //@ts-expect-error 依旧是传参问题，ts推断不出来
                         handler(e);
                     }
                 }, options);
