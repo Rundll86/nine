@@ -1,4 +1,4 @@
-import { $, createComponent, tree, sync, styleSet, createArray, when, defineEvent } from "@";
+import { $, createComponent, tree, sync, styleSet, createArray, when, defineEvent, defineTemplate } from "@";
 
 export default createComponent({ //创建组件
     props: {
@@ -13,22 +13,18 @@ export default createComponent({ //创建组件
     },
     events: [
         defineEvent("up", {
-            template: {
-                arg1: 0,
-                arg2: false
-            },
+            template: defineTemplate<{}>(),
             bubbleable: true
         }),
         defineEvent("down", {
-            template: {
-                arg3: "sb",
-                arg4: Symbol()
-            },
+            template: defineTemplate<number>(),
             bubbleable: true
         })
     ]
-}, (props) => {
+}, (props, _slot, emit) => {
     const doubled = sync(() => props.value.get() * 2, [props.value]); //computed
+    emit("down", 0);
+    emit("up", {});
     return tree("div")
         .use(styleSet().fontSize("20px").padding("10px"))
         .append(

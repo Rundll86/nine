@@ -1,71 +1,52 @@
 import { EmptyValue } from "@/util/types";
 import { HostTree, tree } from "./tree";
-import { hostdown, normalizePropertyDescriptor, validateStore } from "./property";
+import { ComponentPropertyDescriptor, ComponentPropertyInputDict, ComponentPropertyOutputDict, hostdown, normalizePropertyDescriptor, validateStore } from "./property";
 import { Wrapper } from "./reactive";
-import { SlotInput, SlotOutput, pipeExtract } from "./slot";
+import { ComponentSlotInputDict, ComponentSlotOutputDict, renderSlots, SlotDescriptor } from "./slot";
 import { BrokenRendererError } from "@/exceptions";
 import { attachFlag, COMPONENT_INSTANCE, HOST_TREE, matchFlag } from "@/constants/flags";
 import { EventDescriptor } from "./event";
 import { StyleSet } from "./style";
 
-export interface ComponentRenderEntry<P extends ComponentPropertyStore, E extends ComponentEventStore> {
-    (props?: ComponentPropertyInputDict<P>, slot?: SlotInput): ComponentInstance<E>;
+export interface ComponentRenderEntry<P extends ComponentPropertyStore, E extends ComponentEventStore, S extends ComponentSlotStore> {
+    (props?: ComponentPropertyInputDict<P>, slot?: ComponentSlotInputDict<S>): ComponentInstance<E>;
 }
-export interface ComponentInternalRender<P extends ComponentPropertyStore, E extends ComponentEventStore> {
+export interface ComponentInternalRender<P extends ComponentPropertyStore, E extends ComponentEventStore, S extends ComponentSlotStore> {
     (
         options: ComponentPropertyOutputDict<P>,
-        slot: SlotOutput,
+        slot: ComponentSlotOutputDict<S>,
         emit: <D extends E[number], K extends D["name"]>(
             key: K,
-            data: D extends infer R extends EventDescriptor<unknown, string> ? R["name"] extends K ? R["template"] : never : never
+            data: D extends infer R extends EventDescriptor ? R["name"] extends K ? R["template"] : never : never
         ) => void
     ): SourceTree;
 }
-export type Component<P extends ComponentPropertyStore, E extends ComponentEventStore> =
-    ComponentRenderEntry<P, E> & ComponentOption<P, E>;
+export type Component<P extends ComponentPropertyStore, E extends ComponentEventStore, S extends ComponentSlotStore> =
+    ComponentRenderEntry<P, E, S> & ComponentOption<P, E, S>;
 export interface PropertyTransformer<I, O> {
     (data: I): O;
 }
-export interface ComponentPropertyDescriptor<I = unknown, O = unknown, R extends boolean = boolean> {
-    validate?: (data: I) => boolean;
-    transform: PropertyTransformer<I, O>;
-    shadow?: O;
-    required?: R;
-    downloadable?: boolean;
-    uploadable?: boolean;
-}
-export type ComponentEventStore = EventDescriptor<unknown, string>[];
+
 export type ComponentPropertyStore = Record<string, ComponentPropertyDescriptor>;
-export type ComponentPropertyInputDict<P extends ComponentPropertyStore> = {
-    [K in keyof P as P[K]["required"] extends true ? K : never]:
-    P[K] extends ComponentPropertyDescriptor<unknown, infer R>
-    ? R | Wrapper<R> : never;
-} & {
-    [K in keyof P as P[K]["required"] extends false | unknown ? K : never]?:
-    P[K] extends ComponentPropertyDescriptor<unknown, infer R>
-    ? R | Wrapper<R> | EmptyValue : never;
-}
-export type ComponentPropertyOutputDict<P extends ComponentPropertyStore> = {
-    [K in keyof P]:
-    P[K] extends ComponentPropertyDescriptor<unknown, infer R>
-    ? Wrapper<R> : never;
-};
-export interface ComponentOption<P extends ComponentPropertyStore, E extends ComponentEventStore> {
+export type ComponentEventStore = EventDescriptor[];
+export type ComponentSlotStore = SlotDescriptor[];
+
+export interface ComponentOption<P extends ComponentPropertyStore, E extends ComponentEventStore, S extends ComponentSlotStore> {
     props?: P;
     events?: E;
     styles?: StyleSet[];
+    slots?: S;
 }
 export type ComponentInstance<E extends ComponentEventStore = ComponentEventStore> = {
     mount(to: string | HTMLElement): void;
     on<D extends E[number], K extends D["name"]>(
         key: K,
-        data: (data: D extends infer R extends EventDescriptor<unknown, string> ? R["name"] extends K ? R["template"] : never : never) => void
+        data: (data: D extends infer R extends EventDescriptor ? R["name"] extends K ? R["template"] : never : never) => void
     ): ComponentInstance<E>;
     $: HostTree;
 };
 export type RawSourceTree = [
     HTMLElement,
-    // HostTree,
     string,
     number,
     boolean,
@@ -111,11 +92,12 @@ export function attachUUID(root: Node, uuid: string): Node {
 }
 export function createComponent<
     P extends ComponentPropertyStore,
-    E extends EventDescriptor<unknown, string>
+    E extends EventDescriptor,
+    S extends SlotDescriptor
 >(
-    options: ComponentOption<P, E[]>,
-    internalRenderer: ComponentInternalRender<P, E[]>
-): Component<P, E[]> {
+    options: ComponentOption<P, E[], S[]>,
+    internalRenderer: ComponentInternalRender<P, E[], S[]>
+): Component<P, E[], S[]> {
     validateStore(options.props ?? {});
     const propStore = Object.fromEntries(
         Object
@@ -132,16 +114,19 @@ export function createComponent<
             styleSet.apply(`[data-${flagmentedUUID}="true"]`);
         }
     }
-    const entryRenderer = (props?: ComponentPropertyInputDict<P>, slot?: SlotInput) => {
-        const nodeTree = internalRenderer(hostdown(props, propStore), pipeExtract(slot), (key, data) => {
-            const targetEvent = options.events?.find(e => e.name === key);
-            if (!targetEvent) throw new TypeError(`No events named ${key} to emit.`);
-            hostTree.element.dispatchEvent(new CustomEvent(key, {
-                detail: data,
-                bubbles: targetEvent.bubbleable,
-                cancelable: false
-            }));
-        });
+    const entryRenderer = (props?: ComponentPropertyInputDict<P>, slot?: ComponentSlotInputDict<S[]>) => {
+        const nodeTree = internalRenderer(
+            hostdown(props, propStore),
+            renderSlots(slot, options.slots),
+            (key, data) => {
+                const targetEvent = options.events?.find(e => e.name === key);
+                if (!targetEvent) throw new TypeError(`No events named ${key} to emit.`);
+                hostTree.element.dispatchEvent(new CustomEvent(key, {
+                    detail: data,
+                    bubbles: targetEvent.bubbleable,
+                    cancelable: false
+                }));
+            });
         const hostTree = render(nodeTree);
         attachUUID(hostTree.element, rawComponentUUID);
         hostTree.hooks.treeUpdated.subcribe((newTrees) => newTrees.forEach(tree => attachUUID(tree.element, rawComponentUUID)));
@@ -162,5 +147,5 @@ export function createComponent<
     return Object.assign(entryRenderer, {
         props: propStore,
         events: options.events
-    } as Component<P, E[]>);
+    } as Component<P, E[], S[]>);
 }

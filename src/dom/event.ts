@@ -1,4 +1,4 @@
-export type EventDescriptor<T, N extends string> = {
+export type EventDescriptor<T = unknown, N extends string = string> = {
     name: N;
 } & EventOptions<T>;
 export interface EventOptions<T> {

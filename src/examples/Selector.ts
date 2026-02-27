@@ -1,4 +1,16 @@
-import { $, createComponent, defineEvent, rawProperty, styleSet, sync, tree, when, wrap } from "@";
+import {
+    $,
+    createComponent,
+    defineEvent,
+    defineSlot,
+    defineTemplate,
+    rawProperty,
+    styleSet,
+    sync,
+    tree,
+    when,
+    wrap
+} from "@";
 
 export default createComponent({
     props: {
@@ -13,8 +25,8 @@ export default createComponent({
         }
     },
     events: [
-        defineEvent("select", { template: 0 }),
-        defineEvent("toggleState", { template: false })
+        defineEvent("select", { template: defineTemplate<number>() }),
+        defineEvent("toggleState", { template: defineTemplate<boolean>() })
     ],
     styles: [
         styleSet(".item")
@@ -23,9 +35,18 @@ export default createComponent({
         styleSet(".flexdown")
             .display("flex")
             .flexDirection("column")
+    ],
+    slots: [
+        defineSlot("title", {
+            template: defineTemplate<string>(),
+        })
     ]
 }, (props, slot, emit) => {
     const showing = wrap(false);
+    const text = sync(() =>
+        props.items.get()[props.value.get()]
+        , [props.items, props.value]);
+
     const select = (index: number) => {
         props.value.set(index);
         showing.set(false);
@@ -40,9 +61,11 @@ export default createComponent({
             tree("span")
                 .class("item")
                 .use(styleSet().backgroundColor("red"))
-                .append($(sync(() => props.items.get()[props.value.get()], [props.items, props.value])))
+                .append(
+                    tree("div").append($(text)),
+                    slot.title(text)
+                )
                 .on("click", () => showing.set(!showing.get())),
-            slot(),
             when(showing, () =>
                 tree("div")
                     .class("flexdown")

@@ -1,7 +1,31 @@
-import { ComponentPropertyDescriptor, ComponentPropertyInputDict, ComponentPropertyOutputDict, ComponentPropertyStore, PropertyTransformer } from "./component";
-import { AccessError, ConflictionError, MissingFieldError, ValidationFailed } from "@/exceptions";
+import { ComponentPropertyStore, PropertyTransformer } from "./component";
+import { AccessError, ConflictionError, MissingError, ValidationFailed } from "@/exceptions";
 import { matchFlag, WRAPPER } from "@/constants/flags";
-import { wrap } from "./reactive";
+import { wrap, Wrapper } from "./reactive";
+import { EmptyValue } from "@/util";
+
+export interface ComponentPropertyDescriptor<I = unknown, O = unknown, R extends boolean = boolean> {
+    validate?: (data: I) => boolean;
+    transform: PropertyTransformer<I, O>;
+    shadow?: O;
+    required?: R;
+    downloadable?: boolean;
+    uploadable?: boolean;
+}
+export type ComponentPropertyInputDict<P extends ComponentPropertyStore> = {
+    [K in keyof P as P[K]["required"] extends true ? K : never]:
+    P[K] extends ComponentPropertyDescriptor<unknown, infer R>
+    ? R | Wrapper<R> : never;
+} & {
+    [K in keyof P as P[K]["required"] extends false | unknown ? K : never]?:
+    P[K] extends ComponentPropertyDescriptor<unknown, infer R>
+    ? R | Wrapper<R> | EmptyValue : never;
+}
+export type ComponentPropertyOutputDict<P extends ComponentPropertyStore> = {
+    [K in keyof P]:
+    P[K] extends ComponentPropertyDescriptor<unknown, infer R>
+    ? Wrapper<R> : never;
+};
 
 export function rawProperty<T>(): PropertyTransformer<unknown, T> {
     return (x) => x as T;
@@ -63,7 +87,7 @@ export function hostdown<T extends ComponentPropertyStore>(upstream?: ComponentP
         };
         if (!Object.hasOwn(upstream, propertyKey)) {
             if (descriptor.required) {
-                throw new MissingFieldError(`Missing a required property ${propertyKey}.`);
+                throw new MissingError(`Missing a required property ${propertyKey}.`);
             }
             setValue(descriptor.shadow);
             continue;

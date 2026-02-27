@@ -9,6 +9,13 @@ export type Wrapper<T> = {
     event: EventSubcriber<[T, T]>;
 };
 
+export function normalizeWrap<T>(data: T | Wrapper<T>): Wrapper<T> {
+    if (matchFlag<T, typeof WRAPPER>(data, WRAPPER)) {
+        return data;
+    } else {
+        return wrap(data);
+    }
+}
 export function wrap<T>(initialData: T, wrapperOptions?: Partial<Wrapper<T>>): Wrapper<T> {
     const arrayActions = ["push", "pop", "shift", "unshift", "splice", "sort", "reverse"];
     const patch = (data: T) => {

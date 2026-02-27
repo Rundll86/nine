@@ -1,15 +1,45 @@
-import { matchFlag, WRAPPER } from "@/constants/flags";
-import { SourceTree } from "./component";
-import { wrap, Wrapper } from "./reactive";
 
-export type RawSlotInput = SourceTree | (() => SourceTree);
-export type SlotInput = RawSlotInput | Wrapper<RawSlotInput>;
-export type SlotOutput = () => Wrapper<SourceTree>;
+import { ComponentSlotStore, SourceTree } from "./component";
+import { normalizeWrap, Wrapper } from "./reactive";
+import { MissingError } from "@/exceptions";
 
-export function pipeExtract(input: SlotInput): SlotOutput {
-    if (typeof input === "function") {
-        return () => wrap(input());
-    } else if (matchFlag<RawSlotInput, typeof WRAPPER>(input, WRAPPER)) {
-        return pipeExtract(input);
-    } else return () => wrap(input);
+export type SlotDescriptor<T = unknown, N extends string = string, R extends boolean = boolean> = {
+    name: N;
+} & SlotOptions<T, R>;
+export interface SlotOptions<T, R extends boolean> {
+    template: T;
+    required?: R;
+    defaultValue?: SourceTree;
+}
+export type SlotInput<T> = (data: Wrapper<T>) => SourceTree | Wrapper<SourceTree>;
+export type SlotOutput<T> = (data: T | Wrapper<T>) => Wrapper<SourceTree>;
+export type ComponentSlotInputDict<T extends ComponentSlotStore> = {
+    [K in T[number]as K["name"]]?: SlotInput<K["template"]>;
+};
+export type ComponentSlotOutputDict<T extends ComponentSlotStore> = {
+    [K in T[number]as K["name"]]-?: SlotOutput<K["template"]>;
+}
+
+export function extractInput<T>(render: SlotInput<T>): SlotOutput<T> {
+    return (data: T | Wrapper<T>) => normalizeWrap(render(normalizeWrap(data)));
+}
+export function renderSlots<T extends ComponentSlotStore>(rawInput?: ComponentSlotInputDict<T>, store?: T): ComponentSlotOutputDict<T> {
+    if (!store) return {} as ComponentSlotOutputDict<T>;
+    const input = rawInput as Record<string, SlotInput<T[number]["template"]>>;
+    return Object.fromEntries(store.map(descriptor => {
+        if (descriptor.required && (!input || !Object.hasOwn(input, descriptor.name))) {
+            throw new MissingError(`Missing a required slot ${descriptor.name}.`);
+        }
+        if (!input) return [descriptor.name, () => null];
+        return [
+            descriptor.name,
+            extractInput(input[descriptor.name])
+        ];
+    })) as ComponentSlotOutputDict<T>;
+}
+export function defineSlot<N extends string, R extends boolean, T>(name: N, options: SlotOptions<T, R>) {
+    return {
+        name,
+        ...options
+    };
 }
