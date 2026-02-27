@@ -2,17 +2,24 @@ import { camelToHyphen } from "@/util/char";
 import { render, RawSourceTree } from "./component";
 import { Wrapper } from "./reactive";
 import { StyleSet } from "./style";
-import { putIn } from "@/util/array";
+import { putIntoArray } from "@/util/array";
 import { attachFlag, HOST_TREE, matchFlag, WRAPPER } from "@/constants/flags";
 import { EventSubcriber } from "@/channel";
-import { SupportedHTMLRawAttributes, SupportedHTMLElements } from "./element";
-import { KebabToCamel } from "@/util/types";
+import { SupportedHTMLRawAttributes, SupportedHTMLElements, SupportedEventHandlerMap } from "./element";
+import { KebabToCamel, ObjectToEntryUnion, Valueof } from "@/util/types";
 
 export interface HostTreeHooks {
     update: [newTrees: HostTree[], oldTrees: HostTree[]];
+    initialized: [rootTree: HostTree];
+    $event: [ObjectToEntryUnion<SupportedEventHandlerMap>, boolean | void];
 }
 export type HostTreeHookStore = {
-    [K in keyof HostTreeHooks]: EventSubcriber<HostTreeHooks[K]>;
+    [K in keyof HostTreeHooks as K extends `$${infer R}` ? R : K]:
+    K extends `$${string}`
+    ? HostTreeHooks[K] extends [infer E extends unknown[], infer R]
+    ? EventSubcriber<E, R>
+    : EventSubcriber<HostTreeHooks[K]>
+    : EventSubcriber<HostTreeHooks[K]>;
 };
 export type HostTree<E extends SupportedHTMLElements = SupportedHTMLElements, T = HTMLElementTagNameMap[E], A = SupportedHTMLRawAttributes[E]> = {
     [K in string & keyof A as KebabToCamel<K>]-?: (data: A[K] | Wrapper<A[K]>) => HostTree<E>;
@@ -32,14 +39,16 @@ export type HostTree<E extends SupportedHTMLElements = SupportedHTMLElements, T 
         Wrapper<RawSourceTree | RawSourceTree[]>
     )[]): HostTree<E>;
     use(styleSet: StyleSet | Wrapper<StyleSet>): HostTree<E>;
-    on<K extends keyof HTMLElementEventMap>(key: K, handler: (data: HTMLElementEventMap[K]) => void, options?: AddEventListenerOptions): HostTree<E>;
+    on<K extends keyof SupportedEventHandlerMap>(key: K, handler: SupportedEventHandlerMap[K], options?: AddEventListenerOptions): HostTree<E>;
     on(key: string, handler: (...args: unknown[]) => unknown, options?: AddEventListenerOptions): HostTree<E>;
 };
 
 export function tree<E extends SupportedHTMLElements>(data: E | Node) {
     const element: Node = typeof data === "string" ? document.createElement(data) : data;
     const hooks: HostTreeHookStore = {
-        update: new EventSubcriber()
+        update: new EventSubcriber(),
+        initialized: new EventSubcriber(),
+        event: new EventSubcriber()
     };
     const context: HostTree<E> = new Proxy(attachFlag({
         element,
@@ -68,7 +77,7 @@ export function tree<E extends SupportedHTMLElements>(data: E | Node) {
                     update(child.get());
                 } else {
                     const children = child;
-                    for (const child of putIn(children)) {
+                    for (const child of putIntoArray(children)) {
                         element.appendChild(render(child).element);
                     }
                 }
@@ -91,9 +100,16 @@ export function tree<E extends SupportedHTMLElements>(data: E | Node) {
             }
             return context;
         },
-        on(key: string, handler: (...args: unknown[]) => unknown, options: AddEventListenerOptions) {
-            if (element instanceof HTMLElement) {
-                element.addEventListener(key, handler, options);
+        on<K extends keyof SupportedEventHandlerMap>(key: K, handler: SupportedEventHandlerMap[K], options: AddEventListenerOptions) {
+            if (element instanceof EventTarget) {
+                element.addEventListener(key, (e) => {
+                    //@ts-ignore
+                    const emitResult = hooks.event.emit(key, handler);
+                    if (emitResult && !emitResult.some(Boolean)) {
+                        //@ts-ignore
+                        handler(e);
+                    }
+                }, options);
             }
             return context;
         },
@@ -122,5 +138,6 @@ export function tree<E extends SupportedHTMLElements>(data: E | Node) {
             }
         },
     });
+    Promise.resolve().then(() => hooks.initialized.emit(context as unknown as HostTree));
     return context;
 }

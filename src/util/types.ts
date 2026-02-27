@@ -5,3 +5,6 @@ export type KebabToCamel<S extends string> =
     S extends `${infer First}-${infer Rest}`
     ? `${First}${Capitalize<KebabToCamel<Rest>>}`
     : S;
+export type ObjectToEntryUnion<T> = {
+    [K in keyof T]: [K, T[K]];
+}[keyof T];
