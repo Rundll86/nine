@@ -64,21 +64,23 @@ export type ComponentInstance<E extends ComponentEventStore = ComponentEventStor
     ): ComponentInstance<E>;
     $: HostTree;
 };
-export type SourceTree = [
+export type RawSourceTree = [
     HTMLElement,
-    HostTree,
+    // HostTree,
     string,
     number,
     boolean,
+    bigint,
     EmptyValue,
     ComponentInstance,
 ][number];
+export type SourceTree = RawSourceTree | HostTree;
 
 export function render(nodeTree: SourceTree): HostTree {
     let result: HostTree;
-    if (nodeTree instanceof HTMLElement) {
+    if (nodeTree instanceof Node) {
         result = tree(nodeTree);
-    } else if (typeof nodeTree === "string" || typeof nodeTree === "number" || typeof nodeTree === "boolean") {
+    } else if (typeof nodeTree === "string" || typeof nodeTree === "number" || typeof nodeTree === "boolean" || typeof nodeTree === "bigint") {
         result = tree(new Text(String(nodeTree)));
     } else if (matchFlag(nodeTree, COMPONENT_INSTANCE)) {
         result = nodeTree.$;

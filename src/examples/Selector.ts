@@ -34,23 +34,24 @@ export default createComponent({
     showing.event.subcribe(e => emit("toggleState", e));
 
     return tree("div")
-        .className("flexdown")
+        .class("flexdown")
+        .ariaAtomic("false")
         .append(
             tree("span")
-                .className("item")
+                .class("item")
                 .use(styleSet().backgroundColor("red"))
-                .textContent(sync(() => props.items.get()[props.value.get()], [props.items, props.value]))
+                .append($(sync(() => props.items.get()[props.value.get()], [props.items, props.value])))
                 .on("click", () => showing.set(!showing.get())),
             slot(),
             when(showing, () =>
                 tree("div")
-                    .className("flexdown")
+                    .class("flexdown")
                     .append(
                         $(sync(() =>
                             props.items.get().map((label, index) =>
                                 tree("span")
-                                    .className("item")
-                                    .textContent(label)
+                                    .class("item")
+                                    .append(label)
                                     .on("click", () => select(index))
                             ), [props.items]))
                     )

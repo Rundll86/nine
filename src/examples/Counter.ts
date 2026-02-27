@@ -35,23 +35,23 @@ export default createComponent({ //创建组件
             "敲木鱼", tree("br"),
             tree("button")
                 .on("click", () => props.value.set(props.value.get() + 1)) //参数uploadable，赋值会实时同步到上游
-                .textContent("点击加一"),
+                .append("点击加一"),
             tree("button")
                 .on("click", () => props.value.set(props.value.get() - 1))
-                .textContent("点击减一"),
+                .append("点击减一"),
             tree("br"),
             "当前值：", $(props.value), //引用响应式的值，类似模板语法{{ count }}
             "双倍值：", $(doubled),
             $(sync( //只要是能渲染的东西，就能进行响应式引用
                 () => createArray(
                     doubled.get(),
-                    () => tree("div").textContent("你点了一下")
+                    () => tree("div").append("你点了一下")
                 ),
                 [doubled]
             )), //列表渲染v-for
             when(
                 () => props.value.get() > 10,
-                () => tree("p").textContent("count > 10 时显示"),
+                () => tree("p").append("count > 10 时显示"),
                 [props.value]
             ), //条件渲染v-if
         );

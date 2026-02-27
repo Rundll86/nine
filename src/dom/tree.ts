@@ -1,10 +1,12 @@
-import { camelToHyphen } from "@/util/char";
-import { render, SourceTree } from "./component";
+import { camelToHyphen, hyphenToCamel } from "@/util/char";
+import { render, RawSourceTree } from "./component";
 import { Wrapper } from "./reactive";
 import { StyleSet } from "./style";
 import { putIn } from "@/util/array";
 import { attachFlag, HOST_TREE, matchFlag, WRAPPER } from "@/constants/flags";
 import { EventSubcriber } from "@/channel";
+import { SupportedHTMLRawAttributes, SupportedHTMLElements } from "./element";
+import { KebabToCamel } from "@/util/types";
 
 export interface HostTreeHooks {
     update: [newTrees: HostTree[], oldTrees: HostTree[]];
@@ -12,38 +14,43 @@ export interface HostTreeHooks {
 export type HostTreeHookStore = {
     [K in keyof HostTreeHooks]: EventSubcriber<HostTreeHooks[K]>;
 };
-export type HostTree<T extends HTMLElement = HTMLElement> = {
-    [K in keyof T as T[K] extends (...args: unknown[]) => unknown ? never : K]: (data: T[K] | Wrapper<T[K]>) => HostTree<T>;
+export type HostTree<E extends SupportedHTMLElements = SupportedHTMLElements, T = HTMLElementTagNameMap[E], A = SupportedHTMLRawAttributes[E]> = {
+    [K in string & keyof A as KebabToCamel<K>]-?: (data: A[K] | Wrapper<A[K]>) => HostTree<E>;
 } & {
     element: T;
     hooks: HostTreeHookStore;
     append(...children: (
-        SourceTree |
-        SourceTree[] |
-        Wrapper<SourceTree> |
-        Wrapper<SourceTree[]> |
-        Wrapper<SourceTree | SourceTree[]>
-    )[]): HostTree<T>;
-    use(styleSet: StyleSet | Wrapper<StyleSet>): HostTree<T>;
-    on<E extends keyof HTMLElementEventMap>(key: E, handler: (data: HTMLElementEventMap[E]) => void, options?: AddEventListenerOptions): HostTree<T>;
-    on(key: string, handler: (...args: unknown[]) => unknown): HostTree<T>;
+        RawSourceTree |
+        HostTree |
+        RawSourceTree[] |
+        HostTree[] |
+        (RawSourceTree | HostTree)[] |
+        Wrapper<HostTree> |
+        Wrapper<RawSourceTree> |
+        Wrapper<RawSourceTree | HostTree> |
+        Wrapper<(RawSourceTree | HostTree)[]> |
+        Wrapper<RawSourceTree | RawSourceTree[]>
+    )[]): HostTree<E>;
+    use(styleSet: StyleSet | Wrapper<StyleSet>): HostTree<E>;
+    on<K extends keyof HTMLElementEventMap>(key: K, handler: (data: HTMLElementEventMap[K]) => void, options?: AddEventListenerOptions): HostTree<E>;
+    on(key: string, handler: (...args: unknown[]) => unknown, options?: AddEventListenerOptions): HostTree<E>;
 };
 
-export function tree<E extends keyof HTMLElementTagNameMap>(data: E | Node) {
+export function tree<E extends SupportedHTMLElements>(data: E | Node) {
     const element: Node = typeof data === "string" ? document.createElement(data) : data;
     const hooks: HostTreeHookStore = {
         update: new EventSubcriber()
     };
-    const context: HostTree<HTMLElementTagNameMap[E]> = new Proxy(attachFlag({
+    const context: HostTree<E> = new Proxy(attachFlag({
         element,
         hooks,
-        append(...children: (SourceTree | SourceTree[] | Wrapper<SourceTree | SourceTree[]>)[]) {
+        append(...children: (RawSourceTree | RawSourceTree[] | Wrapper<RawSourceTree | RawSourceTree[]>)[]) {
             for (const child of children) {
-                if (matchFlag<SourceTree | SourceTree[], typeof WRAPPER>(child, WRAPPER)) {
+                if (matchFlag<RawSourceTree | RawSourceTree[], typeof WRAPPER>(child, WRAPPER)) {
                     let oldChildren: HostTree[] = [];
                     const baseAnchor = new Comment("Tree anchor");
                     element.appendChild(baseAnchor);
-                    const update = (newTrees: SourceTree[] | SourceTree) => {
+                    const update = (newTrees: RawSourceTree[] | RawSourceTree) => {
                         const normalizedTrees = [...(Array.isArray(newTrees) ? newTrees : [newTrees])].reverse();
                         const newChildren: HostTree[] = [];
                         for (const newTree of normalizedTrees) {
@@ -84,24 +91,31 @@ export function tree<E extends keyof HTMLElementTagNameMap>(data: E | Node) {
             }
             return context;
         },
-        on(key, handler, options) {
+        on(key: string, handler: (...args: unknown[]) => unknown, options: AddEventListenerOptions) {
             if (element instanceof HTMLElement) {
                 element.addEventListener(key, handler, options);
             }
             return context;
         },
-    } as HostTree<HTMLElementTagNameMap[E]>, HOST_TREE), {
+    } as HostTree<E>, HOST_TREE), {
         get<P extends keyof Node>(target: Record<string, unknown>, p: P, receiver: unknown) {
             if (Reflect.has(target, p)) {
                 return Reflect.get(target, p, receiver);
             } else {
                 return (data: HTMLElementTagNameMap[E][P] | Wrapper<HTMLElementTagNameMap[E][P]>) => {
+                    const update = (newData: HTMLElementTagNameMap[E][P]) => {
+                        if (Object.hasOwn(element, p)) {
+                            element[p] = newData;
+                        }
+                        if (element instanceof Element) {
+                            element.setAttribute(camelToHyphen(p), String(newData));
+                        }
+                    };
                     if (matchFlag<HTMLElementTagNameMap[E][P], typeof WRAPPER>(data, WRAPPER)) {
-                        const update = (newData: HTMLElementTagNameMap[E][P]) => element[p] = newData;
                         data.event.subcribe(update);
                         update(data.get());
                     } else {
-                        element[p] = data;
+                        update(data);
                     }
                     return context;
                 };
