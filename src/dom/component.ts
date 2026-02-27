@@ -144,7 +144,7 @@ export function createComponent<
         });
         const hostTree = render(nodeTree);
         attachUUID(hostTree.element, rawComponentUUID);
-        hostTree.hooks.update.subcribe((newTrees) => newTrees.forEach(tree => attachUUID(tree.element, rawComponentUUID)));
+        hostTree.hooks.treeUpdated.subcribe((newTrees) => newTrees.forEach(tree => attachUUID(tree.element, rawComponentUUID)));
         return attachFlag({
             mount(to: string | HTMLElement) {
                 const targets = typeof to === "string" ? [...document.querySelectorAll<HTMLElement>(to)] : [to];

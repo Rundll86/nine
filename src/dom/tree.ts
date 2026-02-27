@@ -9,7 +9,8 @@ import { SupportedHTMLRawAttributes, SupportedHTMLElements, SupportedEventHandle
 import { KebabToCamel, ObjectToEntryUnion, Valueof } from "@/util/types";
 
 export interface HostTreeHooks {
-    update: [newTrees: HostTree[], oldTrees: HostTree[]];
+    treeUpdated: [newTrees: HostTree[], oldTrees: HostTree[]];
+    attributeUpdated: [attribute: string, newValue: unknown, oldValue: unknown];
     initialized: [rootTree: HostTree];
     $event: [ObjectToEntryUnion<SupportedEventHandlerMap>, boolean | void];
 }
@@ -46,7 +47,8 @@ export type HostTree<E extends SupportedHTMLElements = SupportedHTMLElements, T 
 export function tree<E extends SupportedHTMLElements>(data: E | Node) {
     const element: Node = typeof data === "string" ? document.createElement(data) : data;
     const hooks: HostTreeHookStore = {
-        update: new EventSubcriber(),
+        treeUpdated: new EventSubcriber(),
+        attributeUpdated: new EventSubcriber(),
         initialized: new EventSubcriber(),
         event: new EventSubcriber()
     };
@@ -70,7 +72,7 @@ export function tree<E extends SupportedHTMLElements>(data: E | Node) {
                         for (const oldChild of oldChildren) {
                             oldChild.element.remove();
                         }
-                        hooks.update.emit(newChildren, oldChildren);
+                        hooks.treeUpdated.emit(newChildren, oldChildren);
                         oldChildren = newChildren;
                     };
                     child.event.subcribe(update);
@@ -119,19 +121,20 @@ export function tree<E extends SupportedHTMLElements>(data: E | Node) {
                 return Reflect.get(target, p, receiver);
             } else {
                 return (data: HTMLElementTagNameMap[E][P] | Wrapper<HTMLElementTagNameMap[E][P]>) => {
-                    const update = (newData: HTMLElementTagNameMap[E][P]) => {
+                    const update = (newData: HTMLElementTagNameMap[E][P], oldData: HTMLElementTagNameMap[E][P]) => {
                         if (Object.hasOwn(element, p)) {
                             element[p] = newData;
                         }
                         if (element instanceof Element) {
                             element.setAttribute(camelToHyphen(p), String(newData));
                         }
+                        hooks.attributeUpdated.emit(p, newData, oldData);
                     };
                     if (matchFlag<HTMLElementTagNameMap[E][P], typeof WRAPPER>(data, WRAPPER)) {
                         data.event.subcribe(update);
-                        update(data.get());
+                        update(data.get(), data.get());
                     } else {
-                        update(data);
+                        update(data, data);
                     }
                     return context;
                 };
