@@ -106,7 +106,7 @@ export function tree<E extends SupportedHTMLElements>(data: E | Node) {
             if (element instanceof EventTarget) {
                 element.addEventListener(key, (e) => {
                     //@ts-expect-error 运行时这个本来就是配套的，ts推断不出来
-                    const emitResult = hooks.event.emit(key, handler);
+                    const emitResult = hooks.preventEvent.emit(key, handler);
                     if (emitResult && !emitResult.some(Boolean)) {
                         //@ts-expect-error 依旧是传参问题，ts推断不出来
                         handler(e);
