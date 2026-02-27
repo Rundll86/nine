@@ -23,7 +23,7 @@ export function styleSet(selector?: string) {
             return Object.entries(rules).map(([key, value]) => `${camelToHyphen(String(key))}:${value};`).join("");
         },
         selectorString(selector) {
-            return ((this.selector || "") + (selector || "")) || "*"
+            return ((this.selector || "") + (selector || "")) || "*";
         },
     } as StyleSet, {
         get<P extends string & keyof CSSStyleDeclaration>(target: Record<string, unknown>, p: P, receiver: unknown) {

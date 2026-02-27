@@ -7,7 +7,6 @@ import { BrokenRendererError } from "@/exceptions";
 import { attachFlag, COMPONENT_INSTANCE, HOST_TREE, matchFlag } from "@/constants/flags";
 import { EventDescriptor } from "./event";
 import { StyleSet } from "./style";
-import { hyphenToCamel } from "@/util";
 
 export interface ComponentRenderEntry<P extends ComponentPropertyStore, E extends ComponentEventStore> {
     (props?: ComponentPropertyInputDict<P>, slot?: SlotInput): ComponentInstance<E>;

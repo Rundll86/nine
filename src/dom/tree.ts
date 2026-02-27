@@ -1,4 +1,4 @@
-import { camelToHyphen, hyphenToCamel } from "@/util/char";
+import { camelToHyphen } from "@/util/char";
 import { render, RawSourceTree } from "./component";
 import { Wrapper } from "./reactive";
 import { StyleSet } from "./style";
