@@ -8,6 +8,7 @@ export type KebabToCamel<S extends string> =
 export type ObjectToEntryUnion<T> = {
     [K in keyof T]: [K, T[K]];
 }[keyof T];
+export type PutIntoIterable<T> = T extends unknown[] ? T : [T];
 
 export function defineTemplate<T = void>(): T {
     return null as T;
