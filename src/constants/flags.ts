@@ -9,7 +9,7 @@ export const HOST_TREE = Symbol("HostTreeFlag");
 export const COMPONENT_INSTANCE = Symbol("ComponentInstanceFlag");
 export const WRAPPER = Symbol("WrapperFlag");
 
-export function appendFlag<T extends object, F extends keyof FlagMap<unknown>>(data: T, flag: F) {
+export function attachFlag<T extends object, F extends keyof FlagMap<unknown>>(data: T, flag: F) {
     return Object.assign(data, { [flag]: true }) as T & { [K in F]: true };
 }
 export function matchFlag<T, K extends keyof FlagMap<T>>(data: unknown, flag: K): data is FlagMap<T>[K] {

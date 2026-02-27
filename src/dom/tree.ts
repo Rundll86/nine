@@ -3,12 +3,20 @@ import { render, SourceTree } from "./component";
 import { Wrapper } from "./reactive";
 import { StyleSet } from "./style";
 import { putIn } from "@/util/array";
-import { appendFlag, HOST_TREE, matchFlag, WRAPPER } from "@/constants/flags";
+import { attachFlag, HOST_TREE, matchFlag, WRAPPER } from "@/constants/flags";
+import { EventSubcriber } from "@/channel";
 
+export interface HostTreeHooks {
+    update: [newTrees: HostTree[], oldTrees: HostTree[]];
+}
+export type HostTreeHookStore = {
+    [K in keyof HostTreeHooks]: EventSubcriber<HostTreeHooks[K]>;
+};
 export type HostTree<T extends HTMLElement = HTMLElement> = {
     [K in keyof T as T[K] extends (...args: unknown[]) => unknown ? never : K]: (data: T[K] | Wrapper<T[K]>) => HostTree<T>;
 } & {
     element: T;
+    hooks: HostTreeHookStore;
     append(...children: (
         SourceTree |
         SourceTree[] |
@@ -23,8 +31,12 @@ export type HostTree<T extends HTMLElement = HTMLElement> = {
 
 export function tree<E extends keyof HTMLElementTagNameMap>(data: E | Node) {
     const element: Node = typeof data === "string" ? document.createElement(data) : data;
-    const context: HostTree<HTMLElementTagNameMap[E]> = new Proxy(appendFlag({
+    const hooks: HostTreeHookStore = {
+        update: new EventSubcriber()
+    };
+    const context: HostTree<HTMLElementTagNameMap[E]> = new Proxy(attachFlag({
         element,
+        hooks,
         append(...children: (SourceTree | SourceTree[] | Wrapper<SourceTree | SourceTree[]>)[]) {
             for (const child of children) {
                 if (matchFlag<SourceTree | SourceTree[], typeof WRAPPER>(child, WRAPPER)) {
@@ -42,6 +54,7 @@ export function tree<E extends keyof HTMLElementTagNameMap>(data: E | Node) {
                         for (const oldChild of oldChildren) {
                             oldChild.element.remove();
                         }
+                        hooks.update.emit(newChildren, oldChildren);
                         oldChildren = newChildren;
                     };
                     child.event.subcribe(update);

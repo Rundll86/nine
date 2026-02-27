@@ -1,6 +1,6 @@
 import { EventSubcriber } from "@/channel/event-subcriber";
 import { SourceTree } from "./component";
-import { appendFlag, matchFlag, WRAPPER } from "@/constants/flags";
+import { attachFlag, matchFlag, WRAPPER } from "@/constants/flags";
 
 export type Wrapper<T> = {
     get(): T;
@@ -52,7 +52,7 @@ export function wrap<T>(initialData: T, wrapperOptions?: Partial<Wrapper<T>>): W
     const event = new EventSubcriber<[T, T]>();
     let oldRevoke: (() => void) | null = null;
     let currentData = patch(initialData);
-    const wrapper: Wrapper<T> = appendFlag({
+    const wrapper: Wrapper<T> = attachFlag({
         get() { return currentData; },
         set(newData) {
             if (currentData !== newData) {

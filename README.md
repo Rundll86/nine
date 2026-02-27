@@ -3,18 +3,18 @@
 一个轻量、高性能、类型安全的 Vanilla DOM 响应式 UI 框架。
 
 融合了 Vue 模板指令和 React Hooks 的优点，取两者之长。
-同时运行及其轻量，甚至打包后可以用于 XXXMonkey UserScript。
+同时运行及其轻量，甚至打包后可以用于 **单模块 UserScript**。
 
 ## 特性
 
 - **响应式** - 数据变化时自动更新 UI
 - **差量更新** - 只更新变化的 DOM，速度更快
 - **类型安全** - 完整的 TypeScript 支持，类型推断优秀
-- **轻量级** - 无依赖，体积小巧
+- **轻量级** - 无依赖，打包后体积小巧
 - **链式 API** - 流畅的 DOM 操作
 - **Vue 风格指令** - 熟悉的 v-if、v-for 模式
 - **JSX 风格表达式** - 响应式表达式可以放在模板任意位置
-- **数据同步系统** - 使用更优的语法实现数据响应式
+- **数据同步系统** - 使用完全基于表达式的语法实现数据实时响应
 
 ## 安装
 
@@ -26,7 +26,7 @@ npm install nine-9
 
 ```typescript
 // Counter.ts
-import { $, createComponent, tree, sync, styleSet, createArray, when } from "@";
+import { $, createComponent, tree, sync, styleSet, createArray, when } from "nine";
 
 export default createComponent({ //创建组件
     props: {

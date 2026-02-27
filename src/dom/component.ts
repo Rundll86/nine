@@ -4,7 +4,7 @@ import { hostdown, normalizePropertyDescriptor, validateStore } from "./property
 import { Wrapper } from "./reactive";
 import { SlotInput, SlotOutput, pipeExtract } from "./slot";
 import { BrokenRendererError } from "@/exceptions";
-import { appendFlag, COMPONENT_INSTANCE, HOST_TREE, matchFlag } from "@/constants/flags";
+import { attachFlag, COMPONENT_INSTANCE, HOST_TREE, matchFlag } from "@/constants/flags";
 import { EventDescriptor } from "./event";
 import { StyleSet } from "./style";
 import { hyphenToCamel } from "@/util";
@@ -135,26 +135,27 @@ export function createComponent<
         const nodeTree = internalRenderer(hostdown(props, propStore), pipeExtract(slot), (key, data) => {
             const targetEvent = options.events?.find(e => e.name === key);
             if (!targetEvent) throw new TypeError(`No events named ${key} to emit.`);
-            result.element.dispatchEvent(new CustomEvent(key, {
+            hostTree.element.dispatchEvent(new CustomEvent(key, {
                 detail: data,
                 bubbles: targetEvent.bubbleable,
                 cancelable: false
             }));
         });
-        const result = render(nodeTree);
-        attachUUID(result.element, rawComponentUUID);
-        return appendFlag({
+        const hostTree = render(nodeTree);
+        attachUUID(hostTree.element, rawComponentUUID);
+        hostTree.hooks.update.subcribe((newTrees) => newTrees.forEach(tree => attachUUID(tree.element, rawComponentUUID)));
+        return attachFlag({
             mount(to: string | HTMLElement) {
                 const targets = typeof to === "string" ? [...document.querySelectorAll<HTMLElement>(to)] : [to];
                 for (const target of targets) {
-                    target.appendChild(result.element);
+                    target.appendChild(hostTree.element);
                 }
             },
             on(key: string, handler: (data: unknown) => void) {
-                result.on(key, event => event instanceof CustomEvent ? handler(event.detail) : null);
+                hostTree.on(key, event => event instanceof CustomEvent ? handler(event.detail) : null);
                 return this;
             },
-            $: result
+            $: hostTree
         }, COMPONENT_INSTANCE);
     };
     return Object.assign(entryRenderer, {
