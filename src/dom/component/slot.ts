@@ -1,6 +1,6 @@
 
-import { ComponentSlotStore, SourceTree } from "./component";
-import { normalizeWrap, Wrapper } from "./reactive";
+import { ComponentSlotStore, SourceTree } from ".";
+import { normalizeWrap, Wrapper } from "../reactive";
 import { MissingError } from "@/exceptions";
 
 export type SlotDescriptor<T = unknown, N extends string = string, R extends boolean = boolean> = {

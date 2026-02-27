@@ -1,12 +1,12 @@
 import { EmptyValue } from "@/util/types";
-import { HostTree, tree } from "./tree";
+import { HostTree, tree } from "../element";
 import { ComponentPropertyDescriptor, ComponentPropertyInputDict, ComponentPropertyOutputDict, hostdown, normalizePropertyDescriptor, validateStore } from "./property";
-import { Wrapper } from "./reactive";
+import { Wrapper } from "../reactive";
 import { ComponentSlotInputDict, ComponentSlotOutputDict, renderSlots, SlotDescriptor } from "./slot";
 import { BrokenRendererError } from "@/exceptions";
 import { attachFlag, COMPONENT_INSTANCE, HOST_TREE, matchFlag } from "@/constants/flags";
 import { EventDescriptor } from "./event";
-import { StyleSet } from "./style";
+import { StyleSet } from "../element/style";
 
 export interface ComponentRenderEntry<P extends ComponentPropertyStore, E extends ComponentEventStore, S extends ComponentSlotStore> {
     (props?: ComponentPropertyInputDict<P>, slot?: ComponentSlotInputDict<S>): ComponentInstance<E>;
@@ -149,3 +149,7 @@ export function createComponent<
         events: options.events
     } as Component<P, E[], S[]>);
 }
+
+export * from "./event";
+export * from "./property";
+export * from "./slot";

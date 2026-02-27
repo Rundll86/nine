@@ -1,11 +1,11 @@
 import { camelToHyphen } from "@/util/char";
-import { render, RawSourceTree } from "./component";
-import { Wrapper } from "./reactive";
+import { render, RawSourceTree } from "../component";
+import { Wrapper } from "../reactive";
 import { StyleSet } from "./style";
 import { putIntoArray } from "@/util/array";
 import { attachFlag, HOST_TREE, matchFlag, WRAPPER } from "@/constants/flags";
 import { EventSubcriber } from "@/channel";
-import { SupportedHTMLRawAttributes, SupportedHTMLElements, SupportedEventHandlerMap } from "./element";
+import { SupportedHTMLRawAttributes, SupportedHTMLElements, SupportedEventHandlerMap } from ".";
 import { KebabToCamel, ObjectToEntryUnion } from "@/util/types";
 
 export interface HostTreeHooks {

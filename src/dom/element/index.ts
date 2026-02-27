@@ -9,3 +9,6 @@ export type SupportedHTMLRawAttributes = {
 export type SupportedEventHandlerMap = {
     [K in VueEventAttributes as HTMLEventName<K>]: (event: VueHtmlEvents[K]) => void;
 }
+
+export * from "./style";
+export * from "./tree";

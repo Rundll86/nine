@@ -1,7 +1,7 @@
-import { ComponentPropertyStore, PropertyTransformer } from "./component";
+import { ComponentPropertyStore, PropertyTransformer } from ".";
 import { AccessError, ConflictionError, MissingError, ValidationFailed } from "@/exceptions";
 import { matchFlag, WRAPPER } from "@/constants/flags";
-import { wrap, Wrapper } from "./reactive";
+import { wrap, Wrapper } from "../reactive";
 import { EmptyValue } from "@/util";
 
 export interface ComponentPropertyDescriptor<I = unknown, O = unknown, R extends boolean = boolean> {
