@@ -13,7 +13,7 @@ export default createComponent({ //创建组件
     },
     events: [
         defineEvent("up", {
-            template: defineTemplate<{}>(),
+            template: defineTemplate<string>(),
             bubbleable: true
         }),
         defineEvent("down", {
@@ -24,7 +24,7 @@ export default createComponent({ //创建组件
 }, (props, _slot, emit) => {
     const doubled = sync(() => props.value.get() * 2, [props.value]); //computed
     emit("down", 0);
-    emit("up", {});
+    emit("up", "");
     return tree("div")
         .use(styleSet().fontSize("20px").padding("10px"))
         .append(

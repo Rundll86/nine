@@ -1,5 +1,5 @@
 import { EventSubcriber } from "@/channel/event-subcriber";
-import { SourceTree } from "./component";
+import { SourceTree } from "@/dom/component";
 import { attachFlag, matchFlag, WRAPPER } from "@/constants/flags";
 
 export type Wrapper<T> = {
