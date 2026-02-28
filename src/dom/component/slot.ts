@@ -37,7 +37,7 @@ export function renderSlots<T extends ComponentSlotStore>(rawInput?: SlotInputDi
         ];
     })) as SlotOutputDict<T>;
 }
-export function defineSlot<N extends string, R extends boolean, T>(name: N, options: SlotOptions<T, R>) {
+export function defineSlot<N extends string, R extends boolean, T>(name: N, options?: SlotOptions<T, R>) {
     return {
         name,
         ...options
