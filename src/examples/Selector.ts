@@ -46,7 +46,7 @@ export default createComponent({ //在组件配置中声明插槽
     const showing = wrap(false);
     const text = sync(() =>
         props.items.get()[props.value.get()]
-        , [props.items, props.value]);
+    , [props.items, props.value]);
 
     const select = (index: number) => {
         props.value.set(index);

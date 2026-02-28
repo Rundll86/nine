@@ -35,8 +35,8 @@ export function typed<T>(): PropertyTransformer<unknown, T> {
 }
 export function normalizePropertyDescriptor
     <I, O, R extends boolean>(
-        descriptor: PropertyDescriptor<I, O, R>
-    ): Required<PropertyDescriptor<I, O, R>> {
+    descriptor: PropertyDescriptor<I, O, R>
+): Required<PropertyDescriptor<I, O, R>> {
     return Object.assign({
         validate: () => true,
         transform: x => x,
