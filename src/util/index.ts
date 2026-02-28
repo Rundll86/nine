@@ -1,3 +1,4 @@
-export * from "./char";
-export * from "./types";
 export * from "./array";
+export * from "./char";
+export * from "./clone";
+export * from "./types";

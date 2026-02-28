@@ -3,7 +3,9 @@ if (window.__ENV_9__?.mode === "development") {
 }
 
 export * from "./channel";
+export * from "./constants";
 export * from "./dom";
+export * from "./exceptions";
 export * from "./util";
 
 export * as assets from "./assets";
