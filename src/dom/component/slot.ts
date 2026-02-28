@@ -30,14 +30,14 @@ export function renderSlots<T extends ComponentSlotStore>(rawInput?: SlotInputDi
         if (descriptor.required && (!input || !Object.hasOwn(input, descriptor.name))) {
             throw new MissingError(`Missing a required slot ${descriptor.name}.`);
         }
-        if (!input) return [descriptor.name, () => null];
+        if (!input || !input[descriptor.name]) return [descriptor.name, () => null];
         return [
             descriptor.name,
             normalizeRenderer(input[descriptor.name])
         ];
     })) as SlotOutputDict<T>;
 }
-export function defineSlot<N extends string, R extends boolean, T>(name: N, options?: SlotOptions<T, R>) {
+export function defineSlot<N extends string, R extends boolean, T>(name: N, options: SlotOptions<T, R>) {
     return {
         name,
         ...options

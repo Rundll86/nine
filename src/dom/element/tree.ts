@@ -40,6 +40,7 @@ export type HostTree<E extends SupportedHTMLElements = SupportedHTMLElements, T 
         Wrapper<RawSourceTree | RawSourceTree[]>
     )[]): HostTree<E>;
     use(styleSet: StyleSet | Wrapper<StyleSet>): HostTree<E>;
+    data(datasets: Record<string, string | Wrapper<string>>): HostTree<E>;
     on<K extends keyof SupportedEventHandlerMap>(key: K, handler: SupportedEventHandlerMap[K], options?: AddEventListenerOptions): HostTree<E>;
     on(key: string, handler: (...args: unknown[]) => unknown, options?: AddEventListenerOptions): HostTree<E>;
 };
@@ -98,6 +99,19 @@ export function tree<E extends SupportedHTMLElements>(data: E | Node) {
                     update(styleSet.get().rules);
                 } else {
                     update(styleSet.rules);
+                }
+            }
+            return context;
+        },
+        data(datasets) {
+            if (!(element instanceof HTMLElement)) return;
+            for (const [key, value] of Object.entries(datasets)) {
+                const update = (newData: string) => element.dataset[key] = newData;
+                if (matchFlag<string, typeof WRAPPER>(value, WRAPPER)) {
+                    value.event.subcribe(update);
+                    update(value.get());
+                } else {
+                    update(value);
                 }
             }
             return context;
