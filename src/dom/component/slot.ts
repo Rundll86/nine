@@ -13,18 +13,18 @@ export interface SlotOptions<T, R extends boolean> {
 }
 export type SlotInput<T> = (data: Wrapper<T>) => SourceTree | Wrapper<SourceTree>;
 export type SlotOutput<T> = (data: T | Wrapper<T>) => Wrapper<SourceTree>;
-export type ComponentSlotInputDict<T extends ComponentSlotStore> = {
+export type SlotInputDict<T extends ComponentSlotStore> = {
     [K in T[number]as K["name"]]?: SlotInput<K["template"]>;
 };
-export type ComponentSlotOutputDict<T extends ComponentSlotStore> = {
+export type SlotOutputDict<T extends ComponentSlotStore> = {
     [K in T[number]as K["name"]]-?: SlotOutput<K["template"]>;
 }
 
-export function extractInput<T>(render: SlotInput<T>): SlotOutput<T> {
+export function normalizeRenderer<T>(render: SlotInput<T>): SlotOutput<T> {
     return (data: T | Wrapper<T>) => normalizeWrap(render(normalizeWrap(data)));
 }
-export function renderSlots<T extends ComponentSlotStore>(rawInput?: ComponentSlotInputDict<T>, store?: T): ComponentSlotOutputDict<T> {
-    if (!store) return {} as ComponentSlotOutputDict<T>;
+export function renderSlots<T extends ComponentSlotStore>(rawInput?: SlotInputDict<T>, store?: T): SlotOutputDict<T> {
+    if (!store) return {} as SlotOutputDict<T>;
     const input = rawInput as Record<string, SlotInput<T[number]["template"]>>;
     return Object.fromEntries(store.map(descriptor => {
         if (descriptor.required && (!input || !Object.hasOwn(input, descriptor.name))) {
@@ -33,9 +33,9 @@ export function renderSlots<T extends ComponentSlotStore>(rawInput?: ComponentSl
         if (!input) return [descriptor.name, () => null];
         return [
             descriptor.name,
-            extractInput(input[descriptor.name])
+            normalizeRenderer(input[descriptor.name])
         ];
-    })) as ComponentSlotOutputDict<T>;
+    })) as SlotOutputDict<T>;
 }
 export function defineSlot<N extends string, R extends boolean, T>(name: N, options: SlotOptions<T, R>) {
     return {

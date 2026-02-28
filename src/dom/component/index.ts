@@ -1,20 +1,20 @@
 import { EmptyValue } from "@/util/types";
 import { HostTree, tree } from "../element";
-import { ComponentPropertyDescriptor, ComponentPropertyInputDict, ComponentPropertyOutputDict, hostdown, normalizePropertyDescriptor, validateStore } from "./property";
+import { PropertyDescriptor, PropertyInputDict, PropertyOutputDict, hostdown, normalizePropertyDescriptor, validateStore } from "./property";
 import { Wrapper } from "../reactive";
-import { ComponentSlotInputDict, ComponentSlotOutputDict, renderSlots, SlotDescriptor } from "./slot";
+import { SlotInputDict, SlotOutputDict, renderSlots, SlotDescriptor } from "./slot";
 import { BrokenRendererError } from "@/exceptions";
 import { attachFlag, COMPONENT_INSTANCE, HOST_TREE, matchFlag } from "@/constants/flags";
 import { EventDescriptor } from "./event";
 import { StyleSet } from "../element/style";
 
 export interface ComponentRenderEntry<P extends ComponentPropertyStore, E extends ComponentEventStore, S extends ComponentSlotStore> {
-    (props?: ComponentPropertyInputDict<P>, slot?: ComponentSlotInputDict<S>): ComponentInstance<E>;
+    (props?: PropertyInputDict<P>, slot?: SlotInputDict<S>): ComponentInstance<E>;
 }
 export interface ComponentInternalRender<P extends ComponentPropertyStore, E extends ComponentEventStore, S extends ComponentSlotStore> {
     (
-        options: ComponentPropertyOutputDict<P>,
-        slot: ComponentSlotOutputDict<S>,
+        options: PropertyOutputDict<P>,
+        slot: SlotOutputDict<S>,
         emit: <D extends E[number], K extends D["name"]>(
             key: K,
             data: D extends infer R extends EventDescriptor ? R["name"] extends K ? R["template"] : never : never
@@ -23,11 +23,8 @@ export interface ComponentInternalRender<P extends ComponentPropertyStore, E ext
 }
 export type Component<P extends ComponentPropertyStore, E extends ComponentEventStore, S extends ComponentSlotStore> =
     ComponentRenderEntry<P, E, S> & ComponentOption<P, E, S>;
-export interface PropertyTransformer<I, O> {
-    (data: I): O;
-}
 
-export type ComponentPropertyStore = Record<string, ComponentPropertyDescriptor>;
+export type ComponentPropertyStore = Record<string, PropertyDescriptor>;
 export type ComponentEventStore = EventDescriptor[];
 export type ComponentSlotStore = SlotDescriptor[];
 
@@ -114,7 +111,7 @@ export function createComponent<
             styleSet.apply(`[data-${flagmentedUUID}="true"]`);
         }
     }
-    const entryRenderer = (props?: ComponentPropertyInputDict<P>, slot?: ComponentSlotInputDict<S[]>) => {
+    const entryRenderer = (props?: PropertyInputDict<P>, slot?: SlotInputDict<S[]>) => {
         let treeInitialized = false;
 
         let events: [string, unknown, EventDescriptor][] = [];

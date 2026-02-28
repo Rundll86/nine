@@ -1,10 +1,13 @@
-import { ComponentPropertyStore, PropertyTransformer } from ".";
+import { ComponentPropertyStore } from ".";
 import { AccessError, ConflictionError, MissingError, ValidationFailed } from "@/exceptions";
 import { matchFlag, WRAPPER } from "@/constants/flags";
 import { wrap, Wrapper } from "../reactive";
 import { EmptyValue } from "@/util";
 
-export interface ComponentPropertyDescriptor<I = unknown, O = unknown, R extends boolean = boolean> {
+export interface PropertyTransformer<I, O> {
+    (data: I): O;
+}
+export interface PropertyDescriptor<I = unknown, O = unknown, R extends boolean = boolean> {
     validate?: (data: I) => boolean;
     transform: PropertyTransformer<I, O>;
     shadow?: O;
@@ -12,28 +15,28 @@ export interface ComponentPropertyDescriptor<I = unknown, O = unknown, R extends
     downloadable?: boolean;
     uploadable?: boolean;
 }
-export type ComponentPropertyInputDict<P extends ComponentPropertyStore> = {
+export type PropertyInputDict<P extends ComponentPropertyStore> = {
     [K in keyof P as P[K]["required"] extends true ? K : never]:
-    P[K] extends ComponentPropertyDescriptor<unknown, infer R>
+    P[K] extends PropertyDescriptor<unknown, infer R>
     ? R | Wrapper<R> : never;
 } & {
     [K in keyof P as P[K]["required"] extends false | unknown ? K : never]?:
-    P[K] extends ComponentPropertyDescriptor<unknown, infer R>
+    P[K] extends PropertyDescriptor<unknown, infer R>
     ? R | Wrapper<R> | EmptyValue : never;
 }
-export type ComponentPropertyOutputDict<P extends ComponentPropertyStore> = {
+export type PropertyOutputDict<P extends ComponentPropertyStore> = {
     [K in keyof P]:
-    P[K] extends ComponentPropertyDescriptor<unknown, infer R>
+    P[K] extends PropertyDescriptor<unknown, infer R>
     ? Wrapper<R> : never;
 };
 
-export function rawProperty<T>(): PropertyTransformer<unknown, T> {
+export function typed<T>(): PropertyTransformer<unknown, T> {
     return (x) => x as T;
 }
 export function normalizePropertyDescriptor
     <I, O, R extends boolean>(
-    descriptor: ComponentPropertyDescriptor<I, O, R>
-): Required<ComponentPropertyDescriptor<I, O, R>> {
+        descriptor: PropertyDescriptor<I, O, R>
+    ): Required<PropertyDescriptor<I, O, R>> {
     return Object.assign({
         validate: () => true,
         transform: x => x,
@@ -41,7 +44,7 @@ export function normalizePropertyDescriptor
         required: false,
         downloadable: true,
         uploadable: false
-    } satisfies Required<ComponentPropertyDescriptor>, descriptor);
+    } satisfies Required<PropertyDescriptor>, descriptor);
 }
 export function validateStore(store: ComponentPropertyStore) {
     for (const propertyKey in store) {
@@ -56,8 +59,8 @@ export function validateStore(store: ComponentPropertyStore) {
         }
     }
 }
-export function hostdown<T extends ComponentPropertyStore>(upstream?: ComponentPropertyInputDict<T>, store?: T) {
-    if (!upstream) upstream = {} as ComponentPropertyInputDict<T>;
+export function hostdown<T extends ComponentPropertyStore>(upstream?: PropertyInputDict<T>, store?: T) {
+    if (!upstream) upstream = {} as PropertyInputDict<T>;
     const downstream: Record<string, unknown> = {};
     for (const propertyKey in store) {
         const descriptor = normalizePropertyDescriptor(store[propertyKey]);
@@ -99,5 +102,5 @@ export function hostdown<T extends ComponentPropertyStore>(upstream?: ComponentP
             update(upstream[propertyKey], true);
         }
     }
-    return downstream as ComponentPropertyOutputDict<T>;
+    return downstream as PropertyOutputDict<T>;
 }

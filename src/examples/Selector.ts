@@ -4,7 +4,7 @@ import {
     defineEvent,
     defineSlot,
     defineTemplate,
-    rawProperty,
+    typed,
     styleSet,
     sync,
     tree,
@@ -15,7 +15,7 @@ import {
 export default createComponent({ //在组件配置中声明插槽
     props: {
         items: {
-            transform: rawProperty<string[]>(),
+            transform: typed<string[]>(),
             shadow: ["OptionA", "OptionB", "OptionC"]
         },
         value: {
@@ -46,7 +46,7 @@ export default createComponent({ //在组件配置中声明插槽
     const showing = wrap(false);
     const text = sync(() =>
         props.items.get()[props.value.get()]
-    , [props.items, props.value]);
+        , [props.items, props.value]);
 
     const select = (index: number) => {
         props.value.set(index);

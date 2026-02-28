@@ -80,6 +80,8 @@ export function wrap<T>(initialState: T, wrapperOptions?: Partial<Wrapper<T>>): 
         },
         event
     }, WRAPPER);
-    let { data: currentState, tryRevokeOld } = patch(initialState);
+    const patcher = patch(initialState);
+    let currentState = patcher.data;
+    const tryRevokeOld = patcher.tryRevokeOld;
     return { ...wrapper, ...wrapperOptions ?? {} };
 }
