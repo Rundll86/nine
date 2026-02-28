@@ -7,5 +7,5 @@ export function putIntoArray<T>(data: T): PutIntoIterable<T> {
     return [...(Array.isArray(data) ? data : [data])] as PutIntoIterable<T>;
 }
 export function createArray<T>(length: number, filler: () => T): T[] {
-    return new Array(length).fill(0).map(filler);
+    return new Array(Math.max(length, 0)).fill(0).map(filler);
 }

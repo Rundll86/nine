@@ -23,6 +23,8 @@ export default createComponent({ //创建组件
     ]
 }, (props, _slot, emit) => {
     const doubled = sync(() => props.value.get() * 2, [props.value]); //computed
+    doubled.event.subcribe(console.log);
+
     emit("down", 0);
     emit("up", "");
     return tree("div")
