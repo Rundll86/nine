@@ -15,7 +15,7 @@ export interface HostTreeHooks {
     $preventEvent: [ObjectToEntryUnion<SupportedEventHandlerMap>, boolean | void];
 }
 export type HostTreeHookStore = {
-    [K in keyof HostTreeHooks as K extends `$${infer R}` ? R : K]:
+    readonly [K in keyof HostTreeHooks as K extends `$${infer R}` ? R : K]:
     K extends `$${string}`
     ? HostTreeHooks[K] extends [infer E extends unknown[], infer R]
     ? EventSubcriber<E, R>
@@ -45,8 +45,8 @@ export type HostTreeOnMethod<E extends SupportedHTMLElements> = HostTreeAddEvent
 export type HostTree<E extends SupportedHTMLElements = SupportedHTMLElements, T = HTMLElementTagNameMap[E], A = SupportedHTMLRawAttributes[E]> = {
     [K in string & keyof A as KebabToCamel<K>]-?: (data: A[K] | Wrapper<A[K]>) => HostTree<E>;
 } & {
-    element: T;
-    hooks: HostTreeHookStore;
+    readonly element: T;
+    readonly hooks: HostTreeHookStore;
     append(...children: (
         RawSourceTree |
         HostTree |
@@ -68,6 +68,7 @@ function createAddEventListener<E extends SupportedHTMLElements>(element: Node, 
     return <K extends keyof SupportedEventHandlerMap>(key: K, handler: SupportedEventHandlerMap[K], options: AddEventListenerOptions) => {
         if (element instanceof EventTarget) {
             element.addEventListener(key, (e) => {
+                if (e instanceof CustomEvent) return;
                 if (prevent) e.preventDefault();
                 if (stop) e.stopPropagation();
                 //@ts-expect-error 运行时这个本来就是配套的，ts推断不出来
@@ -84,7 +85,7 @@ function createAddEventListener<E extends SupportedHTMLElements>(element: Node, 
 export function tree<E extends SupportedHTMLElements>(data: E | Node) {
     const element: Node = typeof data === "string" ? document.createElement(data) : data;
     const hooks: HostTreeHookStore = {
-        treeUpdated: new EventSubcriber(),
+        treeUpdated: new EventSubcriber({ bubbleable: true }),
         attributeUpdated: new EventSubcriber(),
         initialized: new EventSubcriber(),
         preventEvent: new EventSubcriber()
@@ -92,17 +93,43 @@ export function tree<E extends SupportedHTMLElements>(data: E | Node) {
     const context: HostTree<E> = new Proxy(attachFlag({
         element,
         hooks,
-        append(...children: (RawSourceTree | RawSourceTree[] | Wrapper<RawSourceTree | RawSourceTree[]>)[]) {
+        append(...children: (
+            RawSourceTree |
+            HostTree |
+            RawSourceTree[] |
+            HostTree[] |
+            (RawSourceTree | HostTree)[] |
+            Wrapper<HostTree> |
+            Wrapper<RawSourceTree> |
+            Wrapper<RawSourceTree | HostTree> |
+            Wrapper<(RawSourceTree | HostTree)[]> |
+            Wrapper<RawSourceTree | RawSourceTree[]>
+        )[]) {
             for (const child of children) {
-                if (matchFlag<RawSourceTree | RawSourceTree[], typeof WRAPPER>(child, WRAPPER)) {
+                if (matchFlag<
+                    RawSourceTree
+                    | HostTree
+                    | RawSourceTree[]
+                    | HostTree[]
+                    | (RawSourceTree | HostTree)[],
+                    typeof WRAPPER
+                >(child, WRAPPER)) {
                     let oldChildren: HostTree[] = [];
                     const baseAnchor = new Comment("Tree anchor");
                     element.appendChild(baseAnchor);
-                    const update = (newTrees: RawSourceTree[] | RawSourceTree) => {
+                    const update = (
+                        newTrees:
+                            RawSourceTree
+                            | HostTree
+                            | RawSourceTree[]
+                            | HostTree[]
+                            | (RawSourceTree | HostTree)[]
+                    ) => {
                         const normalizedTrees = [...(Array.isArray(newTrees) ? newTrees : [newTrees])].reverse();
                         const newChildren: HostTree[] = [];
                         for (const newTree of normalizedTrees) {
                             const child = render(newTree);
+                            child.hooks.treeUpdated.parent = hooks.treeUpdated;
                             newChildren.push(child);
                             element.insertBefore(child.element, baseAnchor.nextSibling);
                         }
@@ -118,7 +145,8 @@ export function tree<E extends SupportedHTMLElements>(data: E | Node) {
                     const children = child;
                     const newTrees: HostTree[] = [];
                     for (const child of putIntoArray(children)) {
-                        const hostTree = render(child);
+                        const hostTree = matchFlag(child, HOST_TREE) ? child : render(child as SourceTree);
+                        hostTree.hooks.treeUpdated.parent = hooks.treeUpdated;
                         element.appendChild(hostTree.element);
                         newTrees.push(hostTree);
                     }

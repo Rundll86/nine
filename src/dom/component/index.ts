@@ -7,6 +7,7 @@ import { BrokenRendererError } from "@/exceptions";
 import { attachFlag, COMPONENT_INSTANCE, HOST_TREE, matchFlag } from "@/constants/flags";
 import { EventDescriptor } from "./event";
 import { StyleSet } from "../element/style";
+import { camelToHyphen } from "@/util";
 
 export interface ComponentRenderEntry<P extends ComponentPropertyStore, E extends ComponentEventStore, S extends ComponentSlotStore> {
     (props?: PropertyInputDict<P>, slot?: SlotInputDict<S>): ComponentInstance<E>;
@@ -33,6 +34,7 @@ export interface ComponentOption<P extends ComponentPropertyStore, E extends Com
     events?: E;
     styles?: StyleSet[];
     slots?: S;
+    uuid?: string;
 }
 export type ComponentInstance<E extends ComponentEventStore = ComponentEventStore> = {
     mount(to: string | HTMLElement): void;
@@ -104,7 +106,7 @@ export function createComponent<
                 normalizePropertyDescriptor(value),
             ])
     ) as P;
-    const rawComponentUUID = crypto.randomUUID();
+    const rawComponentUUID = camelToHyphen(options.uuid || crypto.randomUUID());
     const flagmentedUUID = flagment(rawComponentUUID);
     if (options.styles) {
         for (const styleSet of options.styles) {
@@ -140,7 +142,12 @@ export function createComponent<
             });
         const hostTree = render(sourceTree);
         attachUUID(hostTree.element, rawComponentUUID);
-        hostTree.hooks.treeUpdated.subcribe((newTrees) => newTrees.forEach(tree => attachUUID(tree.element, rawComponentUUID)));
+        hostTree.hooks.treeUpdated.subcribe((newTrees) => {
+            for (const newTree of newTrees) {
+                // console.log(newTree);
+                attachUUID(newTree.element, rawComponentUUID);
+            }
+        });
         treeInitialized = true;
 
         emitEventQueue();
