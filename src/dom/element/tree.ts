@@ -1,5 +1,5 @@
 import { camelToHyphen } from "@/util/char";
-import { render, RawSourceTree } from "../component";
+import { render, RawSourceTree, SourceTree } from "../component";
 import { Wrapper } from "../reactive";
 import { StyleSet } from "./style";
 import { putIntoArray } from "@/util/array";
@@ -116,9 +116,13 @@ export function tree<E extends SupportedHTMLElements>(data: E | Node) {
                     update(child.get());
                 } else {
                     const children = child;
+                    const newTrees: HostTree[] = [];
                     for (const child of putIntoArray(children)) {
-                        element.appendChild(render(child).element);
+                        const hostTree = render(child);
+                        element.appendChild(hostTree.element);
+                        newTrees.push(hostTree);
                     }
+                    hooks.treeUpdated.emit(newTrees, []);
                 }
             }
             return context;
