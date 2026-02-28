@@ -1,6 +1,6 @@
 {
     "name": "nine-9",
-    "version": "1.11.0",
+    "version": "1.11.1",
     "description": "一个轻量、高性能、类型安全的 Vanilla DOM 响应式 UI 框架。",
     "main": "dist/index.js",
     "types": "dist/index.d.ts",
@@ -24,7 +24,8 @@
         "build": "tsup --env.NODE_ENV production",
         "lint": "run-s lint:*",
         "lint:es": "eslint . --fix",
-        "lint:type": "tsc --noEmit"
+        "lint:type": "tsc --noEmit",
+        "prepublishOnly": "run-s build"
     },
     "license": "MIT",
     "packageManager": "pnpm@10.28.2",
