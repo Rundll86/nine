@@ -3,7 +3,7 @@
 一个轻量、高性能、类型安全的 Vanilla DOM 响应式 UI 框架。
 
 融合了 Vue 模板指令和 React Hooks 的优点，取两者之长。
-同时运行及其轻量，甚至打包后可以用于 **UserScript**。
+同时运行及其轻量，甚至打包后🉑以用于 **UserScript**。
 
 ## 特性
 
@@ -13,7 +13,7 @@
 - **轻量级** - 无依赖，打包后体积小巧
 - **链式 API** - 流畅的 DOM 操作
 - **Vue 风格指令** - 熟悉的 v-if、v-for 模式
-- **JSX 风格表达式** - 响应式表达式可以放在模板任意位置
+- **JSX 风格表达式** - 响应式表达式🉑以放在模板任意位置
 - **数据同步系统** - 使用完全基于表达式的语法实现数据实时响应
 
 ## 安装
@@ -48,8 +48,8 @@ export default createComponent({
             transform: typed<string[]>(), //将输入的参数进行标准化，typed()函数不进行任何处理，只是类型投射
             required: true, //参数是否必填
             shadow: ["OptionA", "OptionB", "OptionC"], //默认值
-            downloadable: true, //是否可下载，即上游组件向下游传递值
-            uploadable: false //是否可上传，即下游组件向上游传递值
+            downloadable: true, //是否🉑下载，即上游组件向下游传递值
+            uploadable: false //是否🉑上传，即下游组件向上游传递值
         },
         value: {
             transform: Number,
@@ -108,7 +108,7 @@ export default createComponent({
                 tree("div")
                     .class("flexdown")
                     .append(
-                        $(sync(() => //只要包装器返回的数据可以被渲染，就可以通过$函数进行引用
+                        $(sync(() => //只要包装器返回的数据🉑以被渲染，就🉑以通过$函数进行引用
                             props.items.get().map((label, index) =>
                                 tree("span")
                                     .class("item")
@@ -143,9 +143,9 @@ export default createComponent({
 
 欢迎提交Issue和Pull Request！
 
-## 许可证
+## 许🉑证
 
-本项目采用 MIT 许可证 - 详见 [LICENSE](LICENSE) 文件
+本项目采用 MIT 许🉑证 - 详见 [LICENSE](LICENSE) 文件
 
 ## 联系方式
 
