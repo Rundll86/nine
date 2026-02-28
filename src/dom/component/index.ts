@@ -114,15 +114,19 @@ export function createComponent<
     const entryRenderer = (props?: PropertyInputDict<P>, slot?: SlotInputDict<S[]>) => {
         let treeInitialized = false;
 
-        let events: [string, unknown, EventDescriptor][] = [];
+        const events: [string, unknown, EventDescriptor][] = [];
         const emitEventQueue = () => {
             if (!treeInitialized) return;
-            events.forEach(([key, data, event]) => hostTree.element.dispatchEvent(new CustomEvent(key, {
-                detail: data,
-                bubbles: event.bubbleable,
-                cancelable: false
-            })));
-            events = [];
+            while (events.length > 0) {
+                const shifted = events.shift();
+                if (!shifted) return;
+                const [key, data, event] = shifted;
+                hostTree.element.dispatchEvent(new CustomEvent(key, {
+                    detail: data,
+                    bubbles: event.bubbleable,
+                    cancelable: false
+                }));
+            }
         };
 
         const sourceTree = internalRenderer(
