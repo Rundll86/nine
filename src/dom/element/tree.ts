@@ -113,7 +113,7 @@ export function tree<E extends SupportedHTMLElements>(data: E | Node) {
                     | HostTree[]
                     | (RawSourceTree | HostTree)[],
                     typeof WRAPPER
-                >(child, WRAPPER)) {
+                        >(child, WRAPPER)) {
                     let oldChildren: HostTree[] = [];
                     const baseAnchor = new Comment("Tree anchor");
                     element.appendChild(baseAnchor);
