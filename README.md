@@ -3,7 +3,7 @@
 一个轻量、高性能、类型安全的 Vanilla DOM 响应式 UI 框架。
 
 融合了 Vue 模板指令和 React Hooks 的优点，取两者之长。
-同时运行及其轻量，甚至打包后可以用于 **单模块 UserScript**。
+同时运行及其轻量，甚至打包后可以用于 **UserScript**。
 
 ## 特性
 
@@ -25,67 +25,119 @@ npm install nine-9
 ## 示例用法
 
 ```typescript
-// Counter.ts
-import { $, createComponent, tree, sync, styleSet, createArray, when } from "nine";
+//Selector.ts
 
-export default createComponent({ //创建组件
+import {
+    $,
+    createComponent,
+    defineEvent,
+    defineSlot,
+    defineTemplate,
+    typed,
+    styleSet,
+    sync,
+    tree,
+    when,
+    wrap
+} from "@";
+
+export default createComponent({
     props: {
-        value: { //参数名
-            validate: Number.isInteger, //验证器
-            transform: Number, //转换器
-            required: false, //是否必填
-            shadow: 0, //默认值
-            downloadable: true, //（上游→下游）
-            uploadable: true, //（下游→上游），v-model双向绑定
+        items: {
+            validate: Array.isArray, //验证参数是否合法
+            transform: typed<string[]>(), //将输入的参数进行标准化，typed()函数不进行任何处理，只是类型投射
+            required: true, //参数是否必填
+            shadow: ["OptionA", "OptionB", "OptionC"], //默认值
+            downloadable: true, //是否可下载，即上游组件向下游传递值
+            uploadable: false //是否可上传，即下游组件向上游传递值
+        },
+        value: {
+            transform: Number,
+            uploadable: true, //组件的参数🉑上传，即v-model
+            required: true
         }
-    }
-}, (props) => {
-    const doubled = sync(() => props.value.get() * 2, [props.value]); //computed
+    },
+    events: [
+        defineEvent("select", {
+            template: defineTemplate<number>() //定义事件被触发时需要传递的数据类型
+        }),
+        defineEvent("toggleState", { template: defineTemplate<boolean>() })
+    ],
+    styles: [ //这些样式会被封装在组件所在的DOM域
+        styleSet(".item")
+            .backgroundColor("blue")
+            .color("white"),
+        styleSet(".flexdown")
+            .display("flex")
+            .flexDirection("column")
+    ],
+    slots: [
+        defineSlot("title", {
+            template: defineTemplate<string>(), //插槽作用域传值的数据类型
+            required: false, //插槽是否必填
+        })
+    ]
+}, (props, slot, emit) => {
+    const showing = wrap(false); //ref包装一个数据，基于事件订阅的响应式系统
+    const text = sync(() => //computed同步一个数据，任何一个依赖更新时都会引起自身的重新渲染
+        props.items.get()[props.value.get()]
+        , [props.items, props.value]); //🉑灵活的配置依赖列表
+
+    const select = (index: number) => {
+        props.value.set(index);
+        showing.set(false);
+        emit("select", props.value.get());
+    };
+    showing.event.subcribe(e => { //订阅一个包装器的更新事件
+        emit("toggleState", e); //发布组件的自定义事件
+    });
+
     return tree("div")
-        .use(styleSet().fontSize("20px").padding("10px"))
+        .class("flexdown")
+        .ariaAtomic("false")
         .append(
-            "敲木鱼", tree("br"),
-            tree("button")
-                .on("click", () => props.value.set(props.value.get() + 1)) //参数uploadable，赋值会实时同步到上游
-                .textContent("点击加一"),
-            tree("button")
-                .on("click", () => props.value.set(props.value.get() - 1))
-                .textContent("点击减一"),
-            tree("br"),
-            "当前值：", $(props.value), //引用响应式的值，类似模板语法{{ count }}
-            "双倍值：", $(doubled),
-            $(sync( //只要是能渲染的东西，就能进行响应式引用
-                () => createArray(
-                    doubled.get(),
-                    () => tree("div").textContent("你点了一下")
-                ),
-                [doubled]
-            )), //列表渲染v-for
-            when(
-                () => props.value.get() > 10,
-                () => tree("p").textContent("count > 10 时显示"),
-                [props.value]
-            ), //条件渲染v-if
+            tree("span")
+                .class("item")
+                .use(styleSet().backgroundColor("red")) //通过style赋值
+                .append(
+                    tree("div").append($(text)), //引用响应式包装器的值
+                    slot.title(text) //像正常元素一样，把插槽查到想要的位置（参数类型在定义时给出）
+                )
+                .on("click", () => showing.set(!showing.get())),
+            when(showing, () =>
+                tree("div")
+                    .class("flexdown")
+                    .append(
+                        $(sync(() => //只要包装器返回的数据可以被渲染，就可以通过$函数进行引用
+                            props.items.get().map((label, index) =>
+                                tree("span")
+                                    .class("item")
+                                    .append(label)
+                                    .on("click", () => select(index))
+                            ), [props.items]))
+                    )
+            )
         );
 });
 ```
 
 ## 与 Vue 对比
 
-| nine-9                       | Vue          | 说明           |
-|------------------------------|--------------|----------------|
-| `wrap()`                     | `ref()`      | 创建响应式引用 |
-| `sync()`                     | `computed()` | 响应式计算值   |
-| `when(condition, tree)`      | `v-if`       | 条件渲染       |
-| `sync(() => items.map(...))` | `v-for`      | 列表渲染       |
-| `Property.uploadable`        | `v-model`    | 双向绑定       |
+| nine-9                   | Vue          | 说明           |
+|--------------------------|--------------|----------------|
+| `wrap()`                 | `ref()`      | 创建响应式引用 |
+| `sync()`                 | `computed()` | 响应式计算值   |
+| `when(condition, tree)`  | `v-if`       | 条件渲染       |
+| `sync(() => Array<...>)` | `v-for`      | 列表渲染       |
+| `Property.uploadable`    | `v-model`    | 双向绑定       |
 
 ## 运行时特性
 
 ### 性能
 
-1. 由于框架不需要使用 **Runtime** 伴随运行，也无需通过虚拟节点重新生成整个节点树（对节点树的更改完全基于原生DOM操作命令），因此应用的运行性能相当高，甚至可以媲美Vanilla.js的速度了。
-2. 框架处理动态的节点树时，本质上是通过对新旧节点的CRUD实现。但不同于 Vue 的是，**nine-9** 不需要分析diff树，用列表渲染（`sync` ← `v-for`）举例，框架使用 `TreeContext` 接口来描述一个XML节点，**HTML元素、字符串、数字、各类空值（null、undefined）、组件渲染结果**都可以被归一化为一个 `TreeContext` 接口，而这个接口必定会用于封装一个非空的XML节点，当使用 `append` 方法添加一个响应式数组时，`TreeContext` 会首先在当前封装的节点最后添加一个注释节点用于当做锚点，旧列表中渲染出的节点将会被删除，新列表中的节点插入到锚点的后面。
+1. 框架不需要使用 **Runtime** 伴随运行，也无需通过虚拟节点定义，编译结果非常轻量。
+2. 框架处理动态的节点树时，本质上是通过对新旧节点的CRUD实现。由于不需要分析diff树，刷新组件的节点树时完全采用原生DOM操作命令，所以替换树的效率极其高。
+3. 框架的一切状态都是事件驱动的，只要包装器事件触发就能引起App视图更新。编写自定义的响应式封装器也相当灵活。
 
 ## 贡献指南
 
