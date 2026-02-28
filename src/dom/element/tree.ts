@@ -22,6 +22,26 @@ export type HostTreeHookStore = {
     : EventSubcriber<HostTreeHooks[K]>
     : EventSubcriber<HostTreeHooks[K]>;
 };
+export interface HostTreeAddEventListener<E extends SupportedHTMLElements> {
+    <K extends keyof SupportedEventHandlerMap>(
+        key: K,
+        handler: SupportedEventHandlerMap[K],
+        options?: AddEventListenerOptions
+    ): HostTree<E>;
+    (
+        key: string,
+        handler: (...args: unknown[]) => unknown,
+        options?: AddEventListenerOptions
+    ): HostTree<E>;
+}
+export type HostTreeOnMethod<E extends SupportedHTMLElements> = HostTreeAddEventListener<E> & {
+    prevent: HostTreeAddEventListener<E> & {
+        stop: HostTreeAddEventListener<E>;
+    };
+    stop: HostTreeAddEventListener<E> & {
+        prevent: HostTreeAddEventListener<E>;
+    };
+};
 export type HostTree<E extends SupportedHTMLElements = SupportedHTMLElements, T = HTMLElementTagNameMap[E], A = SupportedHTMLRawAttributes[E]> = {
     [K in string & keyof A as KebabToCamel<K>]-?: (data: A[K] | Wrapper<A[K]>) => HostTree<E>;
 } & {
@@ -41,10 +61,26 @@ export type HostTree<E extends SupportedHTMLElements = SupportedHTMLElements, T 
     )[]): HostTree<E>;
     use(styleSet: StyleSet | Wrapper<StyleSet>): HostTree<E>;
     data(datasets: Record<string, string | Wrapper<string>>): HostTree<E>;
-    on<K extends keyof SupportedEventHandlerMap>(key: K, handler: SupportedEventHandlerMap[K], options?: AddEventListenerOptions): HostTree<E>;
-    on(key: string, handler: (...args: unknown[]) => unknown, options?: AddEventListenerOptions): HostTree<E>;
+    on: HostTreeOnMethod<E>;
 };
 
+function createAddEventListener<E extends SupportedHTMLElements>(element: Node, context: HostTree<E>, prevent: boolean, stop: boolean, hooks: HostTreeHookStore) {
+    return <K extends keyof SupportedEventHandlerMap>(key: K, handler: SupportedEventHandlerMap[K], options: AddEventListenerOptions) => {
+        if (element instanceof EventTarget) {
+            element.addEventListener(key, (e) => {
+                if (prevent) e.preventDefault();
+                if (stop) e.stopPropagation();
+                //@ts-expect-error 运行时这个本来就是配套的，ts推断不出来
+                const emitResult = hooks.preventEvent.emit(key, handler);
+                if (emitResult && !emitResult.some(Boolean)) {
+                    //@ts-expect-error 依旧是传参问题，ts推断不出来
+                    handler(e);
+                }
+            }, options);
+        }
+        return context;
+    };
+}
 export function tree<E extends SupportedHTMLElements>(data: E | Node) {
     const element: Node = typeof data === "string" ? document.createElement(data) : data;
     const hooks: HostTreeHookStore = {
@@ -115,20 +151,7 @@ export function tree<E extends SupportedHTMLElements>(data: E | Node) {
                 }
             }
             return context;
-        },
-        on<K extends keyof SupportedEventHandlerMap>(key: K, handler: SupportedEventHandlerMap[K], options: AddEventListenerOptions) {
-            if (element instanceof EventTarget) {
-                element.addEventListener(key, (e) => {
-                    //@ts-expect-error 运行时这个本来就是配套的，ts推断不出来
-                    const emitResult = hooks.preventEvent.emit(key, handler);
-                    if (emitResult && !emitResult.some(Boolean)) {
-                        //@ts-expect-error 依旧是传参问题，ts推断不出来
-                        handler(e);
-                    }
-                }, options);
-            }
-            return context;
-        },
+        }
     } as HostTree<E>, HOST_TREE), {
         get<P extends keyof Node>(target: Record<string, unknown>, p: P, receiver: unknown) {
             if (Reflect.has(target, p)) {
@@ -155,6 +178,23 @@ export function tree<E extends SupportedHTMLElements>(data: E | Node) {
             }
         },
     });
+    context.on = Object.assign(
+        createAddEventListener(element, context, false, false, hooks),
+        {
+            stop: Object.assign(
+                createAddEventListener(element, context, false, true, hooks),
+                {
+                    prevent: createAddEventListener(element, context, true, true, hooks)
+                }
+            ),
+            prevent: Object.assign(
+                createAddEventListener(element, context, true, false, hooks),
+                {
+                    stop: createAddEventListener(element, context, true, true, hooks)
+                }
+            )
+        }
+    ) as HostTreeOnMethod<E>;
     Promise.resolve().then(() => hooks.initialized.emit(context as unknown as HostTree));
     return context;
 }
