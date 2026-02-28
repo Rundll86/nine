@@ -11,3 +11,4 @@ examples.Selector({ value }, {
     .mount("#app");
 
 examples.Counter().mount("#app");
+examples.ObjectWatcher().mount("#app");
