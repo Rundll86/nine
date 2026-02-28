@@ -4,7 +4,7 @@ declare global {
         hasOwn<T, K>(data: T, key: K): data is T & Record<K, unknown>;
     }
     interface Window {
-        __NINE_ENV__?: Partial<{
+        __ENV_9__?: Partial<{
             mode: "development" | "production"
         }>
     }

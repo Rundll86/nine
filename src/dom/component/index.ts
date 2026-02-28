@@ -115,21 +115,34 @@ export function createComponent<
         }
     }
     const entryRenderer = (props?: ComponentPropertyInputDict<P>, slot?: ComponentSlotInputDict<S[]>) => {
-        const nodeTree = internalRenderer(
+        let treeInitialized = false;
+
+        let events: [string, unknown, EventDescriptor][] = [];
+        const emitEventQueue = () => {
+            if (!treeInitialized) return;
+            events.forEach(([key, data, event]) => hostTree.element.dispatchEvent(new CustomEvent(key, {
+                detail: data,
+                bubbles: event.bubbleable,
+                cancelable: false
+            })));
+            events = [];
+        };
+
+        const sourceTree = internalRenderer(
             hostdown(props, propStore),
             renderSlots(slot, options.slots),
             (key, data) => {
                 const targetEvent = options.events?.find(e => e.name === key);
                 if (!targetEvent) throw new TypeError(`No events named ${key} to emit.`);
-                hostTree.element.dispatchEvent(new CustomEvent(key, {
-                    detail: data,
-                    bubbles: targetEvent.bubbleable,
-                    cancelable: false
-                }));
+                events.push([key, data, targetEvent]);
+                emitEventQueue();
             });
-        const hostTree = render(nodeTree);
+        const hostTree = render(sourceTree);
         attachUUID(hostTree.element, rawComponentUUID);
         hostTree.hooks.treeUpdated.subcribe((newTrees) => newTrees.forEach(tree => attachUUID(tree.element, rawComponentUUID)));
+        treeInitialized = true;
+
+        emitEventQueue();
         return attachFlag({
             mount(to: string | HTMLElement) {
                 const targets = typeof to === "string" ? [...document.querySelectorAll<HTMLElement>(to)] : [to];

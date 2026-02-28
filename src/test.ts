@@ -9,3 +9,5 @@ examples.Selector({ value }, {
     .on("select", e => console.log("当前选项：", e))
     .on("toggleState", e => console.log("当前是否开关：", e))
     .mount("#app");
+
+examples.Counter().mount("#app");

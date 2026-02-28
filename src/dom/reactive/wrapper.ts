@@ -1,5 +1,8 @@
 import { EventSubcriber } from "@/channel";
 import { matchFlag, WRAPPER, attachFlag } from "@/constants/flags";
+import watchers from "./watcher/implements";
+import { StructWatcher } from "./watcher/base";
+import { AccessError } from "@/exceptions";
 
 export type Wrapper<T> = {
     get(): T;
@@ -15,62 +18,61 @@ export function normalizeWrap<T>(data: T | Wrapper<T>): Wrapper<T> {
         return wrap(data);
     }
 }
-export function wrap<T>(initialData: T, wrapperOptions?: Partial<Wrapper<T>>): Wrapper<T> {
-    const arrayActions = ["push", "pop", "shift", "unshift", "splice", "sort", "reverse"];
-    const patch = (data: T) => {
-        if (!Array.isArray(data)) { return data; }
-        const { proxy, revoke: newRevoke } = Proxy.revocable(data, {
-            get(target, p: string, receiver) {
-                if (arrayActions.includes(p)) {
-                    const originalMethod = Reflect.get(target, p, receiver) as (...args: unknown[]) => unknown;
-                    if (typeof originalMethod === "function") {
-                        return (...args: unknown[]) => {
-                            let oldData = wrapper.get();
-                            if (Array.isArray(oldData)) {
-                                oldData = [...oldData] as T;
-                                const result = originalMethod.call(target, ...args);
-                                wrapper.event.emit(wrapper.get(), oldData);
-                                return result;
-                            }
-                        };
-                    } else return Reflect.get(target, p, receiver);
-                } else {
-                    return Reflect.get(target, p, receiver);
-                }
-            },
-            set(target, p, newValue, receiver) {
-                const oldValue = Reflect.get(target, p, receiver);
-                if (oldValue !== newValue) {
-                    let oldData = wrapper.get();
-                    if (Array.isArray(oldData)) {
-                        oldData = [...oldData] as T;
-                        const result = Reflect.set(target, p, newValue, receiver);
-                        wrapper.event.emit(wrapper.get(), oldData);
-                        return result;
-                    }
-                }
-                return Reflect.set(target, p, newValue, receiver);
-            },
-        });
-        oldRevoke = newRevoke;
-        return proxy;
-    };
+export function wrap<T>(initialState: T, wrapperOptions?: Partial<Wrapper<T>>): Wrapper<T> {
     const event = new EventSubcriber<[T, T]>();
-    let oldRevoke: (() => void) | null = null;
-    let currentData = patch(initialData);
+
+    const patch = (target: T): {
+        data: T
+    } & {
+        tryRevokeOld: (newState: T, oldState: T) => [T, T, boolean]
+    } => {
+        let currentWatcher: StructWatcher<T> | null = null;
+        let oldRevoke: ((oldData: T) => void) | null = null;
+        for (const watcher of watchers) {
+            if (watcher.validate(initialState)) {
+                currentWatcher = watcher as unknown as StructWatcher<T>;
+                break;
+            }
+        }
+        if (currentWatcher) {
+            let currentState: T | null = null;
+            const { data, revoke } = currentWatcher.patch(target, (data) => {
+                if (!currentWatcher) return currentState!;
+                currentState = currentWatcher.duplicate(data);
+                return currentState;
+            }, (newState) => {
+                if (!currentState) throw new AccessError("StructWatcher updated a new data before snapshotting.");
+                wrapper.event.emit(newState, currentState);
+            }, wrapper);
+            oldRevoke = revoke;
+            return {
+                data,
+                tryRevokeOld: (newState, oldState) => {
+                    if (currentWatcher.validate(oldState) && oldRevoke) {
+                        oldState = currentWatcher.duplicate(oldState);
+                        oldRevoke(oldState);
+                        return [patch(newState).data, oldState, true];
+                    } else {
+                        const { data } = patch(newState);
+                        return [data, oldState, true];
+                    };
+                }
+            };
+        } else {
+            return {
+                data: target,
+                tryRevokeOld: (newState, oldState) => [newState, oldState, false],
+            };
+        }
+    };
+
     const wrapper: Wrapper<T> = attachFlag({
-        get() { return currentData; },
-        set(newData) {
-            if (currentData !== newData) {
-                let oldData = currentData;
-                if (Array.isArray(oldData) && oldRevoke) {
-                    oldData = [...oldData] as T;
-                    oldRevoke();
-                    currentData = patch(newData);
-                } else {
-                    currentData = newData;
-                };
-                this.event.emit(newData, oldData);
+        get() { return currentState; },
+        set(newState) {
+            if (currentState !== newState) {
+                const [patchedNewState, patchedOldState] = tryRevokeOld(newState, currentState);
+                currentState = patchedNewState;
+                this.event.emit(patchedNewState, patchedOldState);
             }
         },
         updateOnly() {
@@ -78,5 +80,6 @@ export function wrap<T>(initialData: T, wrapperOptions?: Partial<Wrapper<T>>): W
         },
         event
     }, WRAPPER);
+    let { data: currentState, tryRevokeOld } = patch(initialState);
     return { ...wrapper, ...wrapperOptions ?? {} };
 }
