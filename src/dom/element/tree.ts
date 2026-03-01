@@ -113,7 +113,7 @@ export function tree<E extends SupportedHTMLElements>(data: E | Node) {
                     | HostTree[]
                     | (RawSourceTree | HostTree)[],
                     typeof WRAPPER
-                        >(child, WRAPPER)) {
+                >(child, WRAPPER)) {
                     let oldChildren: HostTree[] = [];
                     const baseAnchor = new Comment("Tree anchor");
                     element.appendChild(baseAnchor);
@@ -191,9 +191,7 @@ export function tree<E extends SupportedHTMLElements>(data: E | Node) {
             } else {
                 return (data: HTMLElementTagNameMap[E][P] | Wrapper<HTMLElementTagNameMap[E][P]>) => {
                     const update = (newData: HTMLElementTagNameMap[E][P], oldData: HTMLElementTagNameMap[E][P]) => {
-                        if (Object.hasOwn(element, p)) {
-                            element[p] = newData;
-                        }
+                        element[p] = newData;
                         if (element instanceof Element) {
                             element.setAttribute(camelToHyphen(p), String(newData));
                         }

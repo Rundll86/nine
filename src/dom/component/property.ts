@@ -35,8 +35,8 @@ export function typed<T>(): PropertyTransformer<unknown, T> {
 }
 export function normalizePropertyDescriptor
     <I, O, R extends boolean>(
-    descriptor: PropertyDescriptor<I, O, R>
-): Required<PropertyDescriptor<I, O, R>> {
+        descriptor: PropertyDescriptor<I, O, R>
+    ): Required<PropertyDescriptor<I, O, R>> {
     return Object.assign({
         validate: () => true,
         transform: x => x,
@@ -73,7 +73,7 @@ export function hostdown<T extends ComponentPropertyStore>(upstream?: PropertyIn
                 wrapper.event.subcribe((newData) => {
                     if (!matchFlag(upstream[propertyKey], WRAPPER) || !matchFlag(downstream[propertyKey], WRAPPER)) return;
                     if (downstream[propertyKey].get() === upstream[propertyKey].get()) return;
-                    if (!descriptor.uploadable) throw new AccessError(`Property ${propertyKey} isn't uploadable but being set.`);
+                    if (!descriptor.uploadable) return;
                     upstream[propertyKey].set(newData);
                 });
             }
