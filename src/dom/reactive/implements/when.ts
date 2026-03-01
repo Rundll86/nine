@@ -3,7 +3,12 @@ import { matchFlag, WRAPPER } from "@/constants/flags";
 import { Wrapper } from "..";
 import { sync } from "./sync";
 
-export function when(condition: boolean | Wrapper<boolean> | (() => boolean), tree: () => SourceTree, dependencies: unknown[] = []) {
+export function when(
+    condition: boolean | Wrapper<boolean> | (() => boolean),
+    tree: () => SourceTree,
+    dependencies: unknown[] = [],
+    elseTree: () => SourceTree = () => null
+) {
     return sync(() => {
         let result: boolean;
         if (typeof condition === "function") {
@@ -13,6 +18,6 @@ export function when(condition: boolean | Wrapper<boolean> | (() => boolean), tr
         } else {
             result = condition.get();
         }
-        return [result ? tree() : null];
+        return [result ? tree() : elseTree()];
     }, [...dependencies, ...(matchFlag(condition, WRAPPER) ? [condition] : [])]);
 }
