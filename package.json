@@ -31,7 +31,7 @@
     "packageManager": "pnpm@10.28.2",
     "devDependencies": {
         "@eslint/js": "^10.0.1",
-        "@turbowarp/types": "^0.0.14",
+        "@types/node": "^25.3.3",
         "@vue/runtime-dom": "^3.5.29",
         "cross-env": "^10.1.0",
         "eslint": "^10.0.2",

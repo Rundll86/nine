@@ -2,10 +2,9 @@ import { defineConfig } from "tsup";
 
 export default defineConfig(options => {
     const isDevelopment = options.env?.NODE_ENV === "development";
-    console.log(options.env?.NODE_ENV, isDevelopment);
 
     return {
-        entry: ["src/index.ts", ...isDevelopment ? ["src/test.ts"] : []],
+        entry: ["src/index.ts"],
         splitting: false,
         sourcemap: isDevelopment,
         dts: true,

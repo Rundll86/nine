@@ -1,7 +1,7 @@
 {
     "compilerOptions": {
-        "target": "ESNext",
-        "module": "ESNext",
+        "target": "esnext",
+        "module": "esnext",
         "moduleResolution": "node",
         "strict": true,
         "esModuleInterop": true,
@@ -23,7 +23,7 @@
             ]
         },
         "baseUrl": ".",
-        "outDir": "dist"
+        "outDir": "dist/native"
     },
     "include": [
         "src/**/*",
