@@ -1,3 +1,4 @@
+import { matchFlag, WRAPPER } from "@/constants";
 import { defineWatcher } from "../base";
 import { duplicateObject } from "@/util/clone";
 
@@ -5,7 +6,7 @@ export default defineWatcher({
     validate(data: unknown): data is Record<PropertyKey, unknown> {
         return typeof data === "object" && data !== null && !Array.isArray(data);
     },
-    duplicate: duplicateObject,
+    duplicate: e => duplicateObject(e, e => matchFlag(e, WRAPPER) ? false : true),
     patch(data, snapshot, update) {
         const { proxy, revoke } = Proxy.revocable(data, {
             set(target, p, newValue, receiver) {

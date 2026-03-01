@@ -1,7 +1,7 @@
 import { EventSubcriber } from "@/channel";
 import { matchFlag, WRAPPER, attachFlag } from "@/constants/flags";
 import watchers from "./watcher/implements";
-import { StructWatcher } from "./watcher/base";
+import { StructWatcher, ValidateMethod } from "./watcher/base";
 import { AccessError } from "@/exceptions";
 
 export type Wrapper<T> = {
@@ -21,6 +21,13 @@ export function normalizeWrap<T>(data: T | Wrapper<T>): Wrapper<T> {
 export function wrap<T>(initialState: T, wrapperOptions?: Partial<Wrapper<T>>): Wrapper<T> {
     const event = new EventSubcriber<[T, T]>();
 
+    const tryValidate = (use: ValidateMethod<unknown>, data: unknown) => {
+        try {
+            return use(data);
+        } catch (e) {
+            console.warn("Failed to validate data:", e);
+        }
+    };
     const patch = (target: T): {
         data: T
     } & {
@@ -28,8 +35,8 @@ export function wrap<T>(initialState: T, wrapperOptions?: Partial<Wrapper<T>>): 
     } => {
         let currentWatcher: StructWatcher<T> | null = null;
         let oldRevoke: ((oldData: T) => void) | null = null;
-        for (const watcher of watchers) {
-            if (watcher.validate(initialState)) {
+        for (const watcher of Object.values(watchers).map(w => w.default)) {
+            if (tryValidate(watcher.validate, initialState)) {
                 currentWatcher = watcher as unknown as StructWatcher<T>;
                 break;
             }
@@ -48,7 +55,7 @@ export function wrap<T>(initialState: T, wrapperOptions?: Partial<Wrapper<T>>): 
             return {
                 data,
                 tryRevokeOld: (newState, oldState) => {
-                    if (currentWatcher.validate(oldState) && oldRevoke) {
+                    if (tryValidate(currentWatcher.validate, oldState) && oldRevoke) {
                         oldState = currentWatcher.duplicate(oldState);
                         oldRevoke(oldState);
                         return [patch(newState).data, oldState, true];

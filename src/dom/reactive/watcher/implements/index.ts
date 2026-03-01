@@ -1,4 +1,4 @@
-import array from "./array";
-import object from "./object";
+import * as array from "./array";
+import * as object from "./object";
 
-export default [array, object];
+export default { array, object };

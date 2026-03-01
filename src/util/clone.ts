@@ -1,4 +1,9 @@
-export function duplicateObject<T>(target: T, hash = new WeakMap()): T {
+export function duplicateObject<T>(target: T, duplicator?: (data: unknown) => boolean, hash = new WeakMap()): T {
+    if (duplicator && typeof duplicator === "function") {
+        if (!duplicator(target)) {
+            return target;
+        };
+    }
     if (target === null || typeof target !== "object") {
         return target;
     }
@@ -15,7 +20,7 @@ export function duplicateObject<T>(target: T, hash = new WeakMap()): T {
         const cloneMap = new Map();
         hash.set(target, cloneMap);
         target.forEach((value, key) => {
-            cloneMap.set(duplicateObject(key, hash), duplicateObject(value, hash));
+            cloneMap.set(duplicateObject(key, duplicator, hash), duplicateObject(value, duplicator, hash));
         });
         return cloneMap as T;
     }
@@ -23,14 +28,14 @@ export function duplicateObject<T>(target: T, hash = new WeakMap()): T {
         const cloneSet = new Set();
         hash.set(target, cloneSet);
         target.forEach(value => {
-            cloneSet.add(duplicateObject(value, hash));
+            cloneSet.add(duplicateObject(value, duplicator, hash));
         });
         return cloneSet as T;
     }
     const cloneObj = Array.isArray(target) ? [] : Object.create(Object.getPrototypeOf(target));
     hash.set(target, cloneObj);
     Reflect.ownKeys(target).forEach(key => {
-        cloneObj[key] = duplicateObject(target[key as keyof T], hash);
+        cloneObj[key] = duplicateObject(target[key as keyof T], duplicator, hash);
     });
     if (typeof target === "function") {
         return target;

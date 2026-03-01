@@ -3,8 +3,11 @@ import { Wrapper } from "../wrapper";
 export interface RevokeOldDataMethod<T> {
     (oldState: T): void;
 }
+export interface ValidateMethod<T> {
+    (data: unknown): data is T
+}
 export interface StructWatcher<T> {
-    validate(data: unknown): data is T;
+    validate: ValidateMethod<T>;
     duplicate(data: T): T;
     patch(
         data: T,

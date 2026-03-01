@@ -1,16 +1,15 @@
 import { defineWatcher } from "../base";
 
-const arrayModifiableActions: string[] = [
-    Array.prototype.push,
-    Array.prototype.pop,
-    Array.prototype.shift,
-    Array.prototype.unshift,
-    Array.prototype.splice,
-    Array.prototype.sort,
-    Array.prototype.reverse,
-    Array.prototype.fill,
-    Array.prototype.copyWithin
-].map(e => e.name);
+export const arrayModifiableActions = [
+    "push",
+    "pop",
+    "shift",
+    "unshift",
+    "splice",
+    "sort",
+    "reverse",
+    "fill"
+];
 export default defineWatcher({
     validate: Array.isArray,
     duplicate: x => [...x],
