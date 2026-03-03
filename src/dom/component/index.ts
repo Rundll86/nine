@@ -159,7 +159,7 @@ export function createComponent<
                 }
             },
             on(key: string, handler: (data: unknown) => void) {
-                hostTree.on(key, event => event instanceof CustomEvent ? handler(event.detail) : null);
+                hostTree.element.addEventListener(key, event => event instanceof CustomEvent ? handler(event.detail) : null);
                 return this;
             },
             $: hostTree
