@@ -146,6 +146,7 @@ export function createComponent<
             emitEventQueue(hostTree);
             return attachFlag({
                 mount(to: string | HTMLElement) {
+                    if (!hostTree || !treeInitialized) throw new TooEarly();
                     const targets = typeof to === "string" ? [...document.querySelectorAll<HTMLElement>(to)] : [to];
                     for (const target of targets) {
                         target.appendChild(hostTree.element);
@@ -164,16 +165,20 @@ export function createComponent<
             hostdown(props, propStore),
             renderSlots(slot, options.slots),
             (key, data) => {
-                if (!hostTree || !treeInitialized) throw new TooEarly("Component host tree not initialized.");
+                if (!hostTree || !treeInitialized) throw new TooEarly();
                 const targetEvent = options.events?.find(e => e.name === key);
                 if (!targetEvent) throw new TypeError(`No component events named ${key} to emit.`);
                 events.push([key, data, targetEvent]);
                 emitEventQueue(hostTree);
-            });
+            }
+        );
         if (sourceTree instanceof Promise) {
             return sourceTree
                 .then(instantiate)
-                .then(instance => hostTree = instance.$);
+                .then(instance => {
+                    hostTree = instance.$;
+                    return instance;
+                });
         } else {
             const instance = instantiate(sourceTree);
             hostTree = instance.$;
