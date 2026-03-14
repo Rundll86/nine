@@ -52,7 +52,7 @@ export default createComponent({
     const showing = wrap(false); //ref包装一个数据，基于事件订阅的响应式系统
     const text = sync(() => //computed同步一个数据，任何一个依赖更新时都会引起自身的重新渲染
         props.items.get()[props.value.get()]
-    , [props.items, props.value]); //🉑灵活的配置依赖列表
+        , [props.items, props.value]); //🉑灵活的配置依赖列表
 
     const select = (index: number) => {
         props.value.set(index);

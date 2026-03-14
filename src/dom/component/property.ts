@@ -59,7 +59,7 @@ export function validateStore(store: ComponentPropertyStore) {
         }
     }
 }
-export function hostdown<T extends ComponentPropertyStore>(upstream?: PropertyInputDict<T>, store?: T) {
+export function bridgeProperty<T extends ComponentPropertyStore>(upstream?: PropertyInputDict<T>, store?: T) {
     if (!upstream) upstream = {} as PropertyInputDict<T>;
     const downstream: Record<string, unknown> = {};
     for (const propertyKey in store) {

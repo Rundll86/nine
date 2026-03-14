@@ -9,7 +9,23 @@
 
 <body>
     <div id="app"></div>
-    <script src="./dist/test.js"></script>
+    <script src="./dist/lib.js"></script>
+    <script>
+        const MyApp = createComponent({
+            props: {
+                text: { transform: String }
+            }
+        }, ({ text }) =>
+            tree("div")
+                .append(
+                    tree("span")
+                        .append($(text))
+                        .on("click", () => text.set(text.get() + "!"))
+                )
+        );
+        const app = MyApp({ text: "Hello Nine9 !" }).mount("#app");
+        console.log(app);
+    </script>
 </body>
 
 </html>

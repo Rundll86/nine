@@ -1,6 +1,6 @@
 import { EmptyValue } from "@/util/types";
 import { HostTree, tree } from "../element";
-import { PropertyDescriptor, PropertyInputDict, PropertyOutputDict, hostdown, normalizePropertyDescriptor, validateStore } from "./property";
+import { PropertyDescriptor, PropertyInputDict, PropertyOutputDict, bridgeProperty, normalizePropertyDescriptor, validateStore } from "./property";
 import { Wrapper } from "../reactive";
 import { SlotInputDict, SlotOutputDict, renderSlots, SlotDescriptor } from "./slot";
 import { BrokenRendererError, TooEarly } from "@/exceptions";
@@ -13,14 +13,18 @@ import { attachUUID, flagment } from "./uuid";
 export interface ComponentRenderEntry<P extends ComponentPropertyStore, E extends ComponentEventStore, S extends ComponentSlotStore, A extends boolean> {
     (props?: PropertyInputDict<P>, slot?: SlotInputDict<S>): A extends true ? Promise<ComponentInstance<E>> : ComponentInstance<E>;
 }
+export interface ComponentEmitMethod<E extends ComponentEventStore> {
+    <D extends E[number], K extends D["name"]>(
+        key: K,
+        data: D extends infer R extends EventDescriptor ? R["name"] extends K ? R["template"] : never : never
+    ): void;
+    instance: ComponentInstance<E> | null;
+}
 export interface ComponentInternalRender<P extends ComponentPropertyStore, E extends ComponentEventStore, S extends ComponentSlotStore, A extends boolean> {
     (
         options: PropertyOutputDict<P>,
         slot: SlotOutputDict<S>,
-        emit: <D extends E[number], K extends D["name"]>(
-            key: K,
-            data: D extends infer R extends EventDescriptor ? R["name"] extends K ? R["template"] : never : never
-        ) => void
+        emit: ComponentEmitMethod<E>
     ): A extends true ? Promise<SourceTree> : SourceTree;
 }
 export type Component<P extends ComponentPropertyStore, E extends ComponentEventStore, S extends ComponentSlotStore, A extends boolean> =
@@ -151,6 +155,7 @@ export function createComponent<
                     for (const target of targets) {
                         target.appendChild(hostTree.element);
                     }
+                    return this;
                 },
                 on(key: string, handler: (data: unknown) => void) {
                     hostTree.element.addEventListener(key, event => event instanceof CustomEvent ? handler(event.detail) : null);
@@ -161,27 +166,30 @@ export function createComponent<
         };
 
         let hostTree: HostTree | null = null;
-        const sourceTree = internalRenderer(
-            hostdown(props, propStore),
-            renderSlots(slot, options.slots),
-            (key, data) => {
-                if (!hostTree || !treeInitialized) throw new TooEarly();
-                const targetEvent = options.events?.find(e => e.name === key);
-                if (!targetEvent) throw new TypeError(`No component events named ${key} to emit.`);
-                events.push([key, data, targetEvent]);
-                emitEventQueue(hostTree);
-            }
-        );
+        const properties = bridgeProperty(props, propStore);
+        const slots = renderSlots(slot, options.slots);
+        const emit = Object.assign((key: string, data: unknown) => {
+            if (!hostTree || !treeInitialized) throw new TooEarly();
+            const targetEvent = options.events?.find(e => e.name === key);
+            if (!targetEvent) throw new TypeError(`No component events named ${key} to emit.`);
+            events.push([key, data, targetEvent]);
+            emitEventQueue(hostTree);
+        }, {
+            instance: null as ComponentInstance | null
+        });
+        const sourceTree = internalRenderer(properties, slots, emit);
         if (sourceTree instanceof Promise) {
             return sourceTree
                 .then(instantiate)
                 .then(instance => {
                     hostTree = instance.$;
+                    emit.instance = instance;
                     return instance;
                 });
         } else {
             const instance = instantiate(sourceTree);
             hostTree = instance.$;
+            emit.instance = instance;
             return instance;
         }
     };

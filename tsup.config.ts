@@ -4,12 +4,12 @@ export default defineConfig(options => {
     const isDevelopment = options.env?.NODE_ENV === "development";
 
     return {
-        entry: ["src/index.ts"],
+        entry: ["src/index.ts", "src/lib.ts"],
         splitting: false,
         sourcemap: isDevelopment,
         dts: true,
         clean: true,
-        minify: !isDevelopment,
+        minify: false,
         loader: {
             ".svg": "dataurl"
         },
