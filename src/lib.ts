@@ -5,5 +5,6 @@ window.nine9
     = window.$$$$$$$$$
     = window._________
     = window.$_$_$_$_$
+    = window._$_$_$_$_
     = window.$9
     = lib;
