@@ -3,7 +3,7 @@ import { HostTree, tree } from "../element";
 import { PropertyDescriptor, PropertyInputDict, PropertyOutputDict, hostdown, normalizePropertyDescriptor, validateStore } from "./property";
 import { Wrapper } from "../reactive";
 import { SlotInputDict, SlotOutputDict, renderSlots, SlotDescriptor } from "./slot";
-import { BrokenRendererError } from "@/exceptions";
+import { BrokenRendererError, TooEarly } from "@/exceptions";
 import { attachFlag, COMPONENT_INSTANCE, HOST_TREE, matchFlag } from "@/constants/flags";
 import { EventDescriptor } from "./event";
 import { StyleSet } from "../element/style";
@@ -117,11 +117,11 @@ export function createComponent<
             styleSet.apply(`[data-${flagmentedUUID}="true"]`);
         }
     }
-    const entryRenderer = async (props?: PropertyInputDict<P>, slot?: SlotInputDict<S[]>) => {
+    const entryRenderer = (props?: PropertyInputDict<P>, slot?: SlotInputDict<S[]>) => {
         let treeInitialized = false;
 
         const events: [string, unknown, EventDescriptor][] = [];
-        const emitEventQueue = () => {
+        const emitEventQueue = (hostTree: HostTree) => {
             if (!treeInitialized) return;
             while (events.length > 0) {
                 const shifted = events.shift();
@@ -134,39 +134,51 @@ export function createComponent<
                 }));
             }
         };
+        const instantiate = (sourceTree: SourceTree) => {
+            const hostTree = render(sourceTree);
+            attachUUID(hostTree.element, rawComponentUUID);
+            hostTree.hooks.treeUpdated.subcribe((newTrees) => {
+                for (const newTree of newTrees) {
+                    attachUUID(newTree.element, rawComponentUUID);
+                }
+            });
+            treeInitialized = true;
+            emitEventQueue(hostTree);
+            return attachFlag({
+                mount(to: string | HTMLElement) {
+                    const targets = typeof to === "string" ? [...document.querySelectorAll<HTMLElement>(to)] : [to];
+                    for (const target of targets) {
+                        target.appendChild(hostTree.element);
+                    }
+                },
+                on(key: string, handler: (data: unknown) => void) {
+                    hostTree.element.addEventListener(key, event => event instanceof CustomEvent ? handler(event.detail) : null);
+                    return this;
+                },
+                $: hostTree
+            }, COMPONENT_INSTANCE);
+        };
 
-        const sourceTree = await internalRenderer(
+        let hostTree: HostTree | null = null;
+        const sourceTree = internalRenderer(
             hostdown(props, propStore),
             renderSlots(slot, options.slots),
             (key, data) => {
+                if (!hostTree) throw new TooEarly("Component host tree not initialized.");
                 const targetEvent = options.events?.find(e => e.name === key);
-                if (!targetEvent) throw new TypeError(`No events named ${key} to emit.`);
+                if (!targetEvent) throw new TypeError(`No component events named ${key} to emit.`);
                 events.push([key, data, targetEvent]);
-                emitEventQueue();
+                emitEventQueue(hostTree);
             });
-        const hostTree = render(sourceTree);
-        attachUUID(hostTree.element, rawComponentUUID);
-        hostTree.hooks.treeUpdated.subcribe((newTrees) => {
-            for (const newTree of newTrees) {
-                attachUUID(newTree.element, rawComponentUUID);
-            }
-        });
-        treeInitialized = true;
-
-        emitEventQueue();
-        return attachFlag({
-            mount(to: string | HTMLElement) {
-                const targets = typeof to === "string" ? [...document.querySelectorAll<HTMLElement>(to)] : [to];
-                for (const target of targets) {
-                    target.appendChild(hostTree.element);
-                }
-            },
-            on(key: string, handler: (data: unknown) => void) {
-                hostTree.element.addEventListener(key, event => event instanceof CustomEvent ? handler(event.detail) : null);
-                return this;
-            },
-            $: hostTree
-        }, COMPONENT_INSTANCE);
+        if (sourceTree instanceof Promise) {
+            return sourceTree
+                .then(instantiate)
+                .then(instance => hostTree = instance.$);
+        } else {
+            const instance = instantiate(sourceTree);
+            hostTree = instance.$;
+            return instance;
+        }
     };
     return Object.assign(entryRenderer, {
         props: propStore,
