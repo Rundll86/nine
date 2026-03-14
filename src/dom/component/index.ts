@@ -110,11 +110,11 @@ export function createComponent<
                 normalizePropertyDescriptor(value),
             ])
     ) as P;
-    const rawComponentUUID = camelToHyphen(options.uuid || crypto.randomUUID());
-    const flagmentedUUID = flagment(rawComponentUUID);
+    const rawUUID = camelToHyphen(options.uuid || crypto.randomUUID());
+    const flagmentUUID = flagment(rawUUID);
     if (options.styles) {
         for (const styleSet of options.styles) {
-            styleSet.apply(`[data-${flagmentedUUID}="true"]`);
+            styleSet.apply(`[data-${flagmentUUID}="true"]`);
         }
     }
     const entryRenderer = (props?: PropertyInputDict<P>, slot?: SlotInputDict<S[]>) => {
@@ -136,10 +136,10 @@ export function createComponent<
         };
         const instantiate = (sourceTree: SourceTree) => {
             const hostTree = render(sourceTree);
-            attachUUID(hostTree.element, rawComponentUUID);
+            attachUUID(hostTree.element, rawUUID);
             hostTree.hooks.treeUpdated.subcribe((newTrees) => {
                 for (const newTree of newTrees) {
-                    attachUUID(newTree.element, rawComponentUUID);
+                    attachUUID(newTree.element, rawUUID);
                 }
             });
             treeInitialized = true;
@@ -156,7 +156,7 @@ export function createComponent<
                     return this;
                 },
                 $: hostTree
-            }, COMPONENT_INSTANCE);
+            }, COMPONENT_INSTANCE) as ComponentInstance;
         };
 
         let hostTree: HostTree | null = null;
@@ -164,7 +164,7 @@ export function createComponent<
             hostdown(props, propStore),
             renderSlots(slot, options.slots),
             (key, data) => {
-                if (!hostTree) throw new TooEarly("Component host tree not initialized.");
+                if (!hostTree || !treeInitialized) throw new TooEarly("Component host tree not initialized.");
                 const targetEvent = options.events?.find(e => e.name === key);
                 if (!targetEvent) throw new TypeError(`No component events named ${key} to emit.`);
                 events.push([key, data, targetEvent]);
