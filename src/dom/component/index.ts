@@ -8,11 +8,12 @@ import { attachFlag, COMPONENT_INSTANCE, HOST_TREE, matchFlag } from "@/constant
 import { EventDescriptor } from "./event";
 import { StyleSet } from "../element/style";
 import { camelToHyphen } from "@/util";
+import { attachUUID, flagment } from "./uuid";
 
-export interface ComponentRenderEntry<P extends ComponentPropertyStore, E extends ComponentEventStore, S extends ComponentSlotStore> {
-    (props?: PropertyInputDict<P>, slot?: SlotInputDict<S>): ComponentInstance<E>;
+export interface ComponentRenderEntry<P extends ComponentPropertyStore, E extends ComponentEventStore, S extends ComponentSlotStore, A extends boolean> {
+    (props?: PropertyInputDict<P>, slot?: SlotInputDict<S>): A extends true ? Promise<ComponentInstance<E>> : ComponentInstance<E>;
 }
-export interface ComponentInternalRender<P extends ComponentPropertyStore, E extends ComponentEventStore, S extends ComponentSlotStore> {
+export interface ComponentInternalRender<P extends ComponentPropertyStore, E extends ComponentEventStore, S extends ComponentSlotStore, A extends boolean> {
     (
         options: PropertyOutputDict<P>,
         slot: SlotOutputDict<S>,
@@ -20,10 +21,10 @@ export interface ComponentInternalRender<P extends ComponentPropertyStore, E ext
             key: K,
             data: D extends infer R extends EventDescriptor ? R["name"] extends K ? R["template"] : never : never
         ) => void
-    ): SourceTree;
+    ): A extends true ? Promise<SourceTree> : SourceTree;
 }
-export type Component<P extends ComponentPropertyStore, E extends ComponentEventStore, S extends ComponentSlotStore> =
-    ComponentRenderEntry<P, E, S> & ComponentOption<P, E, S>;
+export type Component<P extends ComponentPropertyStore, E extends ComponentEventStore, S extends ComponentSlotStore, A extends boolean> =
+    ComponentRenderEntry<P, E, S, A> & ComponentOption<P, E, S>;
 
 export type ComponentPropertyStore = Record<string, PropertyDescriptor>;
 export type ComponentEventStore = EventDescriptor[];
@@ -75,28 +76,31 @@ export function render(nodeTree: SourceTree): HostTree {
 export function $<T>(data: Wrapper<T>) {
     return data as unknown as Wrapper<SourceTree>;
 }
-export function flagment<T extends string>(uuid: T) {
-    return `nine_${uuid.replaceAll("-", "_")}` as const;
-}
-export function attachUUID(root: Node, uuid: string): Node {
-    for (const node of [root, ...root.childNodes]) {
-        if (node instanceof HTMLElement) {
-            node.dataset[flagment(uuid)] = "true";
-        }
-        if (node !== root && node.childNodes.length > 0) {
-            attachUUID(node, uuid);
-        }
-    }
-    return root;
-}
+
 export function createComponent<
     P extends ComponentPropertyStore,
     E extends EventDescriptor,
     S extends SlotDescriptor
 >(
     options: ComponentOption<P, E[], S[]>,
-    internalRenderer: ComponentInternalRender<P, E[], S[]>
-): Component<P, E[], S[]> {
+    internalRenderer: ComponentInternalRender<P, E[], S[], true>
+): Component<P, E[], S[], true>
+export function createComponent<
+    P extends ComponentPropertyStore,
+    E extends EventDescriptor,
+    S extends SlotDescriptor
+>(
+    options: ComponentOption<P, E[], S[]>,
+    internalRenderer: ComponentInternalRender<P, E[], S[], false>
+): Component<P, E[], S[], false>
+export function createComponent<
+    P extends ComponentPropertyStore,
+    E extends EventDescriptor,
+    S extends SlotDescriptor
+>(
+    options: ComponentOption<P, E[], S[]>,
+    internalRenderer: ComponentInternalRender<P, E[], S[], boolean>
+): Component<P, E[], S[], boolean> {
     validateStore(options.props ?? {});
     const propStore = Object.fromEntries(
         Object
@@ -113,7 +117,7 @@ export function createComponent<
             styleSet.apply(`[data-${flagmentedUUID}="true"]`);
         }
     }
-    const entryRenderer = (props?: PropertyInputDict<P>, slot?: SlotInputDict<S[]>) => {
+    const entryRenderer = async (props?: PropertyInputDict<P>, slot?: SlotInputDict<S[]>) => {
         let treeInitialized = false;
 
         const events: [string, unknown, EventDescriptor][] = [];
@@ -131,7 +135,7 @@ export function createComponent<
             }
         };
 
-        const sourceTree = internalRenderer(
+        const sourceTree = await internalRenderer(
             hostdown(props, propStore),
             renderSlots(slot, options.slots),
             (key, data) => {
@@ -144,7 +148,6 @@ export function createComponent<
         attachUUID(hostTree.element, rawComponentUUID);
         hostTree.hooks.treeUpdated.subcribe((newTrees) => {
             for (const newTree of newTrees) {
-                // console.log(newTree);
                 attachUUID(newTree.element, rawComponentUUID);
             }
         });
@@ -168,9 +171,10 @@ export function createComponent<
     return Object.assign(entryRenderer, {
         props: propStore,
         events: options.events
-    } as Component<P, E[], S[]>);
+    } as Component<P, E[], S[], boolean>);
 }
 
 export * from "./event";
 export * from "./property";
 export * from "./slot";
+export * from "./uuid";
