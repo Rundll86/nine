@@ -127,13 +127,12 @@ export function createComponent<
         const events: [string, unknown, EventDescriptor][] = [];
         const emitEventQueue = (hostTree: HostTree) => {
             if (!treeInitialized) return;
-            while (events.length > 0) {
-                const shifted = events.shift();
-                if (!shifted) return;
-                const [key, data, event] = shifted;
+            let eventEmit;
+            while (eventEmit = events.shift()) {
+                const [key, data, descriptor] = eventEmit;
                 hostTree.element.dispatchEvent(new CustomEvent(key, {
                     detail: data,
-                    bubbles: event.bubbleable,
+                    bubbles: descriptor.bubbleable,
                     cancelable: false
                 }));
             }
