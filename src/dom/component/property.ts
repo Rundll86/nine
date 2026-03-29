@@ -1,5 +1,5 @@
 import { ComponentPropertyStore } from ".";
-import { AccessError, ConflictionError, MissingError, ValidationFailed } from "@/exceptions";
+import { ConflictionError, MissingError, ValidationFailed } from "@/exceptions";
 import { matchFlag, WRAPPER } from "@/constants/flags";
 import { wrap, Wrapper } from "../reactive";
 import { EmptyValue } from "@/util";
@@ -35,8 +35,8 @@ export function typed<T>(): PropertyTransformer<unknown, T> {
 }
 export function normalizePropertyDescriptor
     <I, O, R extends boolean>(
-        descriptor: PropertyDescriptor<I, O, R>
-    ): Required<PropertyDescriptor<I, O, R>> {
+    descriptor: PropertyDescriptor<I, O, R>
+): Required<PropertyDescriptor<I, O, R>> {
     return Object.assign({
         validate: () => true,
         transform: x => x,

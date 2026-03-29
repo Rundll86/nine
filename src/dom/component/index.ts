@@ -5,7 +5,7 @@ import { Wrapper } from "../reactive";
 import { SlotInputDict, SlotOutputDict, renderSlots, SlotDescriptor } from "./slot";
 import { BrokenRendererError, TooEarly } from "@/exceptions";
 import { attachFlag, COMPONENT_INSTANCE, HOST_TREE, matchFlag } from "@/constants/flags";
-import { EventDescriptor } from "./event";
+import { EventDescriptor, EventEmitState } from "./event";
 import { StyleSet } from "../element/style";
 import { camelToHyphen } from "@/util";
 import { attachUUID, flagment } from "./uuid";
@@ -124,12 +124,16 @@ export function createComponent<
     const entryRenderer = (props?: PropertyInputDict<P>, slot?: SlotInputDict<S[]>) => {
         let treeInitialized = false;
 
-        const events: [string, unknown, EventDescriptor][] = [];
+        const eventEmitStates: EventEmitState[] = [];
         const emitEventQueue = (hostTree: HostTree) => {
-            if (!treeInitialized) return;
-            let eventEmit;
-            while (eventEmit = events.shift()) {
-                const [key, data, descriptor] = eventEmit;
+            if (!treeInitialized) {
+                console.warn("Cannot emit event before component tree loaded.");
+                return;
+            };
+            while (eventEmitStates.length > 0) {
+                const eventState = eventEmitStates.shift();
+                if (!eventState) break;
+                const { key, data, descriptor } = eventState;
                 hostTree.element.dispatchEvent(new CustomEvent(key, {
                     detail: data,
                     bubbles: descriptor.bubbleable,
@@ -171,7 +175,7 @@ export function createComponent<
             if (!hostTree || !treeInitialized) throw new TooEarly();
             const targetEvent = options.events?.find(e => e.name === key);
             if (!targetEvent) throw new TypeError(`No component events named ${key} to emit.`);
-            events.push([key, data, targetEvent]);
+            eventEmitStates.push({ key, data, descriptor: targetEvent });
             emitEventQueue(hostTree);
         }, {
             instance: null as ComponentInstance | null
