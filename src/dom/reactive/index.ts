@@ -1,3 +1,4 @@
 export * from "./wrapper";
 export * from "./implements";
-export * from "./watcher";
+export * from "./watchers";
+export * from "./utils";

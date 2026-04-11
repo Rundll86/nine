@@ -1,5 +1,5 @@
 import { ComponentSlotStore, SourceTree } from ".";
-import { normalizeWrap, Wrapper } from "../reactive";
+import { toWrapper, Wrapper } from "../reactive";
 import { MissingError } from "@/exceptions";
 
 export type SlotDescriptor<T = unknown, N extends string = string, R extends boolean = boolean> = {
@@ -20,7 +20,7 @@ export type SlotOutputDict<T extends ComponentSlotStore> = {
 }
 
 export function normalizeRenderer<T>(render: SlotInput<T>): SlotOutput<T> {
-    return (data: T | Wrapper<T>) => normalizeWrap(render(normalizeWrap(data)));
+    return (data: T | Wrapper<T>) => toWrapper(render(toWrapper(data)));
 }
 export function renderSlots<T extends ComponentSlotStore>(rawInput?: SlotInputDict<T>, store?: T): SlotOutputDict<T> {
     if (!store) return {} as SlotOutputDict<T>;

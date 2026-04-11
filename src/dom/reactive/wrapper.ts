@@ -1,24 +1,13 @@
 import { EventSubcriber } from "@/channel";
-import { matchFlag, WRAPPER, attachFlag } from "@/constants/flags";
-import watchers from "./watcher/implements";
-import { StructWatcher, ValidateMethod } from "./watcher/base";
+import { WRAPPER, attachFlag } from "@/constants/flags";
+import watchers from "./watchers/implements";
+import { StructWatcher, ValidateMethod } from "./watchers/base";
 import { AccessError } from "@/exceptions";
+import { Readable, Updatable, Writable } from "./structs/wrapper";
 
-export type Wrapper<T> = {
-    get(): T;
-    set(newData: T): void;
-    updateOnly(): void;
-    event: EventSubcriber<[T, T]>;
-};
+export type Wrapper<T> = Readable<T> & Writable<T> & Updatable<T>;
 
-export function normalizeWrap<T>(data: T | Wrapper<T>): Wrapper<T> {
-    if (matchFlag<T, typeof WRAPPER>(data, WRAPPER)) {
-        return data;
-    } else {
-        return wrap(data);
-    }
-}
-export function wrap<T>(initialState: T, wrapperOptions?: Partial<Wrapper<T>>): Wrapper<T> {
+export function wrap<T>(initialState: T): Wrapper<T> {
     const event = new EventSubcriber<[T, T]>();
 
     const tryValidate = (use: ValidateMethod<unknown>, data: unknown) => {
@@ -90,5 +79,5 @@ export function wrap<T>(initialState: T, wrapperOptions?: Partial<Wrapper<T>>): 
     const patcher = patch(initialState);
     let currentState = patcher.data;
     const tryRevokeOld = patcher.tryRevokeOld;
-    return { ...wrapper, ...wrapperOptions ?? {} };
+    return wrapper;
 }
