@@ -1,4 +1,15 @@
-export function duplicateObject<T>(target: T, duplicator?: (data: unknown) => boolean, hash = new WeakMap()): T {
+const MAX_CLONE_DEPTH = 100;
+
+export function duplicateObject<T>(target: T, duplicator?: (data: unknown) => boolean, hash = new WeakMap(), depth = 0): T {
+    // 防止超深嵌套导致的栈溢出
+    if (depth > MAX_CLONE_DEPTH) {
+        console.warn(
+            `[nine] Object clone depth exceeded MAX_CLONE_DEPTH(${MAX_CLONE_DEPTH}), ` +
+            `returning reference to prevent stack overflow`
+        );
+        return target;
+    }
+
     if (duplicator && typeof duplicator === "function") {
         if (!duplicator(target)) {
             return target;
@@ -20,7 +31,7 @@ export function duplicateObject<T>(target: T, duplicator?: (data: unknown) => bo
         const cloneMap = new Map();
         hash.set(target, cloneMap);
         target.forEach((value, key) => {
-            cloneMap.set(duplicateObject(key, duplicator, hash), duplicateObject(value, duplicator, hash));
+            cloneMap.set(duplicateObject(key, duplicator, hash, depth + 1), duplicateObject(value, duplicator, hash, depth + 1));
         });
         return cloneMap as T;
     }
@@ -28,14 +39,14 @@ export function duplicateObject<T>(target: T, duplicator?: (data: unknown) => bo
         const cloneSet = new Set();
         hash.set(target, cloneSet);
         target.forEach(value => {
-            cloneSet.add(duplicateObject(value, duplicator, hash));
+            cloneSet.add(duplicateObject(value, duplicator, hash, depth + 1));
         });
         return cloneSet as T;
     }
     const cloneObj = Array.isArray(target) ? [] : Object.create(Object.getPrototypeOf(target));
     hash.set(target, cloneObj);
     Reflect.ownKeys(target).forEach(key => {
-        cloneObj[key] = duplicateObject(target[key as keyof T], duplicator, hash);
+        cloneObj[key] = duplicateObject(target[key as keyof T], duplicator, hash, depth + 1);
     });
     if (typeof target === "function") {
         return target;

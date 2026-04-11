@@ -7,6 +7,11 @@ import { Readable, Updatable, Writable } from "./structs/wrapper";
 
 export type Wrapper<T> = Readable<T> & Writable<T> & Updatable<T>;
 
+// 缓存 watchers 列表，避免重复创建数组
+const WATCHER_LIST = Object.freeze(
+    Object.values(watchers).map(w => w.default)
+);
+
 export function wrap<T>(initialState: T): Wrapper<T> {
     const event = new EventSubcriber<[T, T]>();
 
@@ -15,6 +20,8 @@ export function wrap<T>(initialState: T): Wrapper<T> {
             return use(data);
         } catch (e) {
             console.warn("Failed to validate data:", e);
+            // 返回 false 进行错误恢复，而非无法推理的 undefined
+            return false;
         }
     };
     const patch = (target: T): {
@@ -24,7 +31,7 @@ export function wrap<T>(initialState: T): Wrapper<T> {
     } => {
         let currentWatcher: StructWatcher<T> | null = null;
         let oldRevoke: ((oldData: T) => void) | null = null;
-        for (const watcher of Object.values(watchers).map(w => w.default)) {
+        for (const watcher of WATCHER_LIST) {
             if (tryValidate(watcher.validate, initialState)) {
                 currentWatcher = watcher as unknown as StructWatcher<T>;
                 break;
