@@ -39,13 +39,13 @@ import {
     tree,
     when,
     wrap
-} from "@";
+} from "nine";
 
 export default createComponent({
     props: {
         items: {
-            validate: Array.isArray, //验证参数是否合法
-            transform: typed<string[]>(), //将输入的参数进行标准化，typed()函数不进行任何处理，只是类型投射
+            validate: Array.isArray, //验证参数是否合法的方法
+            transform: typed<string[]>(), //将输入的参数进行标准化的方法，typed()函数返回x=>x，仅类型检查
             required: true, //参数是否必填
             shadow: ["OptionA", "OptionB", "OptionC"], //默认值
             downloadable: true, //是否🉑下载，即上游组件向下游传递值
@@ -136,8 +136,8 @@ export default createComponent({
 ### 性能
 
 1. 框架不需要使用 **Runtime** 伴随运行，也无需通过虚拟节点定义，编译结果非常轻量。
-2. 框架处理动态的节点树时，本质上是通过对新旧节点的CRUD实现。由于不需要分析diff树，刷新组件的节点树时完全采用原生DOM操作命令，所以替换树的效率极其高。
-3. 框架的一切状态都是事件驱动的，只要包装器事件触发就能引起App视图更新。编写自定义的响应式封装器也相当灵活。
+2. 处理动态节点树时，本质上是通过对新旧节点的CRUD实现。由于不需要分析diff树，重建组件的节点树是完全局部替换的，采用原生DOM操作命令，更新速度极其快。
+3. 框架的一切状态都是事件驱动的，只要包装器事件触发就能引起App视图更新。编写自定义的响应式封装器也很灵活。
 
 ## 贡献指南
 

@@ -15,8 +15,8 @@ import {
 export default createComponent({
     props: {
         items: {
-            validate: Array.isArray, //验证参数是否合法
-            transform: typed<string[]>(), //将输入的参数进行标准化，typed()函数不进行任何处理，只是类型投射
+            validate: Array.isArray, //验证参数是否合法的方法
+            transform: typed<string[]>(), //将输入的参数进行标准化的方法，typed()函数返回x=>x，仅类型检查
             required: true, //参数是否必填
             shadow: ["OptionA", "OptionB", "OptionC"], //默认值
             downloadable: true, //是否🉑下载，即上游组件向下游传递值
