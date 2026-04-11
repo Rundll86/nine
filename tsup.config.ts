@@ -9,7 +9,7 @@ export default defineConfig(options => {
         sourcemap: isDevelopment,
         dts: true,
         clean: true,
-        minify: false,
+        minify: !isDevelopment,
         loader: {
             ".svg": "dataurl"
         },
