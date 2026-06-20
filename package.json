@@ -1,46 +1,48 @@
 {
-    "name": "nine-9",
-    "version": "1.14.0",
-    "description": "一个轻量、高性能、类型安全的 Vanilla DOM 响应式 UI 框架。",
-    "main": "dist/index.js",
-    "types": "dist/index.d.ts",
-    "files": [
-        "dist"
-    ],
-    "readme": "readme.md",
-    "repository": {
-        "type": "git",
-        "url": "https://github.com/Rundll86/nine.git"
-    },
-    "homepage": "https://github.com/Rundll86/nine#readme",
-    "keywords": [
-        "ui",
-        "framework",
-        "vanilla",
-        "reactive"
-    ],
-    "scripts": {
-        "dev": "tsup --watch --env.NODE_ENV development",
-        "build": "tsup --env.NODE_ENV production",
-        "lint": "run-s lint:*",
-        "lint:es": "eslint . --fix",
-        "lint:type": "tsc --noEmit",
-        "prepublishOnly": "run-s build"
-    },
-    "license": "MIT",
-    "packageManager": "pnpm@10.28.2",
-    "devDependencies": {
-        "@eslint/js": "^10.0.1",
-        "@types/node": "^25.3.3",
-        "@vue/runtime-dom": "^3.5.29",
-        "cross-env": "^10.1.0",
-        "eslint": "^10.0.2",
-        "globals": "^17.3.0",
-        "jiti": "^2.6.1",
-        "npm-run-all": "^4.1.5",
-        "terser": "^5.46.1",
-        "tsup": "^8.5.1",
-        "typescript": "^5.9.3",
-        "typescript-eslint": "^8.56.1"
-    }
+	"name": "nine-9",
+	"version": "1.14.1",
+	"description": "一个轻量、高性能、类型安全的 Vanilla DOM 响应式 UI 框架。",
+	"main": "dist/index.js",
+	"types": "dist/index.d.ts",
+	"files": [
+		"dist"
+	],
+	"readme": "readme.md",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/Rundll86/nine.git"
+	},
+	"homepage": "https://github.com/Rundll86/nine#readme",
+	"keywords": [
+		"ui",
+		"framework",
+		"vanilla",
+		"reactive"
+	],
+	"scripts": {
+		"dev": "tsup --watch --env.NODE_ENV development",
+		"build": "tsup --env.NODE_ENV production",
+		"lint": "run-s lint:*",
+		"lint:es": "eslint . --fix",
+		"lint:type": "tsc --noEmit",
+		"prepublishOnly": "run-s build"
+	},
+	"license": "MIT",
+	"packageManager": "pnpm@10.28.2",
+	"dependencies": {
+		"@vue/runtime-dom": "^3.5.29"
+	},
+	"devDependencies": {
+		"@eslint/js": "^10.0.1",
+		"@types/node": "^25.3.3",
+		"cross-env": "^10.1.0",
+		"eslint": "^10.0.2",
+		"globals": "^17.3.0",
+		"jiti": "^2.6.1",
+		"npm-run-all": "^4.1.5",
+		"terser": "^5.46.1",
+		"tsup": "^8.5.1",
+		"typescript": "^5.9.3",
+		"typescript-eslint": "^8.56.1"
+	}
 }
